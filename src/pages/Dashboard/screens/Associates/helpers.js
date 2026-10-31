@@ -1,0 +1,1 @@
+export const nomesDepartamentos = (dadosAplicacao, identificadores) => identificadores.map((identificador) => dadosAplicacao.departments.find((dataValor) => dataValor.id === identificador)?.name).filter(Boolean);
