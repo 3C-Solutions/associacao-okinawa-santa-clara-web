@@ -1,36 +1,36 @@
 import { useState } from "react";
-import { fmtMoney } from "@/lib/data.js";
-import { useStore } from "@/store";
-import { Button, Field, Modal, TextAreaField } from "@/components/ui";
-import ReceiptField from "@/pages/Dashboard/components/ReceiptField.jsx";
-import { parseAmount } from "./helpers.js";
+import { formatarMoeda } from "@/lib/data.js";
+import { usarArmazenamento } from "@/store";
+import { Botao, Campo, Modal, CampoAreaTexto } from "@/components/ui";
+import CampoComprovante from "@/pages/Dashboard/components/ReceiptField.jsx";
+import { interpretarValor } from "./helpers.js";
 
 // ---------- Solicitação de reembolso ----------
-export default function RefundModal({ role, user, onClose }) {
-  const { save, notify, toast } = useStore();
-  const ownerName = role === "department" ? user.department?.name || user.profile.name : user.profile.name;
-  const [form, setForm] = useState({ reason: "", amount: "", receipt: null });
-  const [errors, setErrors] = useState({});
-  const set = (key) => (value) => { setForm((f) => ({ ...f, [key]: value })); setErrors((e) => ({ ...e, [key]: undefined })); };
-  const submit = () => {
-    const next = {};
-    const amount = parseAmount(form.amount);
-    if (form.reason.trim().length < 5) next.reason = "Descreva o motivo do reembolso.";
-    if (!amount || amount <= 0) next.amount = "Informe um valor maior que zero.";
-    if (!form.receipt) next.receipt = "Anexe o comprovante.";
-    setErrors(next);
-    if (Object.keys(next).length) return;
-    save("refunds", { scope: user.scope, role, ownerName, reason: form.reason.trim(), amount, receipt: form.receipt, status: "Em análise", createdAt: new Date().toISOString() });
-    notify("admin", "Reembolso solicitado", `${ownerName} solicitou reembolso de ${fmtMoney(amount)}.`, "finance");
-    toast("Solicitação de reembolso enviada");
-    onClose();
+export default function ModalReembolso({ role: papel, user: usuario, onClose: aoFechar }) {
+  const { save: salvar, notify: notificar, toast: aviso } = usarArmazenamento();
+  const nomeResponsavel = papel === "department" ? usuario.department?.name || usuario.profile.name : usuario.profile.name;
+  const [formulario, definirFormulario] = useState({ reason: "", amount: "", receipt: null });
+  const [erros, definirErros] = useState({});
+  const definir = (chave) => (valor) => { definirFormulario((elementoF) => ({ ...elementoF, [chave]: valor })); definirErros((evento) => ({ ...evento, [chave]: undefined })); };
+  const enviar = () => {
+    const proximo = {};
+    const valor = interpretarValor(formulario.amount);
+    if (formulario.reason.trim().length < 5) proximo.reason = "Descreva o motivo do reembolso.";
+    if (!valor || valor <= 0) proximo.amount = "Informe um valor maior que zero.";
+    if (!formulario.receipt) proximo.receipt = "Anexe o comprovante.";
+    definirErros(proximo);
+    if (Object.keys(proximo).length) return;
+    salvar("refunds", { scope: usuario.scope, role: papel, ownerName: nomeResponsavel, reason: formulario.reason.trim(), amount: valor, receipt: formulario.receipt, status: "Em análise", createdAt: new Date().toISOString() });
+    notificar("admin", "Reembolso solicitado", `${nomeResponsavel} solicitou reembolso de ${formatarMoeda(valor)}.`, "finance");
+    aviso("Solicitação de reembolso enviada");
+    aoFechar();
   };
   return (
-    <Modal title="Solicitar reembolso" onClose={onClose} footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit}>Enviar solicitação</Button></>}>
+    <Modal title="Solicitar reembolso" onClose={aoFechar} footer={<><Botao variant="outline" onClick={aoFechar}>Cancelar</Botao><Botao onClick={enviar}>Enviar solicitação</Botao></>}>
       <div className="space-y-4">
-        <TextAreaField label="Motivo" rows={3} value={form.reason} onChange={set("reason")} error={errors.reason} placeholder="Ex.: compra de materiais para o ensaio" required />
-        <Field label="Valor (R$)" type="number" min="0" step="0.01" value={form.amount} onChange={set("amount")} error={errors.amount} required />
-        <ReceiptField value={form.receipt} onChange={set("receipt")} error={errors.receipt} />
+        <CampoAreaTexto label="Motivo" rows={3} value={formulario.reason} onChange={definir("reason")} error={erros.reason} placeholder="Ex.: compra de materiais para o ensaio" required />
+        <Campo label="Valor (R$)" type="number" min="0" step="0.01" value={formulario.amount} onChange={definir("amount")} error={erros.amount} required />
+        <CampoComprovante value={formulario.receipt} onChange={definir("receipt")} error={erros.receipt} />
       </div>
     </Modal>
   );

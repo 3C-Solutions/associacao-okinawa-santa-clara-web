@@ -1,61 +1,61 @@
 import { useState } from "react";
-import { INITIAL_PASSWORD, isEmail, maskPhone, uid } from "@/lib/data.js";
-import { emailInUse } from "@/lib/people.js";
-import { useStore } from "@/store";
-import { Badge, Button, Card, Field, Icon, IconButton, Modal } from "@/components/ui";
+import { SENHA_INICIAL, ehEmail, mascararTelefone, identificadorUnico } from "@/lib/data.js";
+import { emailEmUso } from "@/lib/people.js";
+import { usarArmazenamento } from "@/store";
+import { Selo, Botao, Cartao, Campo, Icone, BotaoIcone, Modal } from "@/components/ui";
 
 // Usuários com perfil Departamento: quem cadastra novos usuários do departamento é um usuário do próprio departamento.
-export default function DepartmentUsers({ department, account }) {
-  const { state, addAccount, removeAccounts, toast, confirm } = useStore();
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
-  const [errors, setErrors] = useState({});
-  const users = Object.entries(state.profiles).filter(([, p]) => p.role === "department" && p.departmentId === department.id);
-  const set = (key) => (value) => { setForm((f) => ({ ...f, [key]: key === "phone" ? maskPhone(value) : value })); setErrors((e) => ({ ...e, [key]: undefined })); };
-  const close = () => { setOpen(false); setForm({ name: "", email: "", phone: "" }); setErrors({}); };
+export default function UsuariosDepartamento({ department: departamento, account: conta }) {
+  const { state: dadosAplicacao, addAccount: adicionarConta, removeAccounts: removerContas, toast: aviso, confirm: confirmar } = usarArmazenamento();
+  const [abrir, definirAberto] = useState(false);
+  const [formulario, definirFormulario] = useState({ name: "", email: "", phone: "" });
+  const [erros, definirErros] = useState({});
+  const usuarios = Object.entries(dadosAplicacao.profiles).filter(([, parametro]) => parametro.role === "department" && parametro.departmentId === departamento.id);
+  const definir = (chave) => (valor) => { definirFormulario((elementoF) => ({ ...elementoF, [chave]: chave === "phone" ? mascararTelefone(valor) : valor })); definirErros((evento) => ({ ...evento, [chave]: undefined })); };
+  const fechar = () => { definirAberto(false); definirFormulario({ name: "", email: "", phone: "" }); definirErros({}); };
 
-  const submit = () => {
-    const next = {};
-    if (form.name.trim().length < 3) next.name = "Informe o nome completo.";
-    if (!isEmail(form.email)) next.email = "Informe um e-mail válido.";
-    else if (emailInUse(state, form.email)) next.email = "Já existe um usuário com este e-mail.";
-    if (form.phone.replace(/\D/g, "").length < 10) next.phone = "Informe um telefone com DDD.";
-    setErrors(next);
-    if (Object.keys(next).length) return;
-    addAccount(`u-${uid()}`, { role: "department", name: form.name.trim(), email: form.email.trim(), phone: form.phone, departmentId: department.id, emailNotifications: true }, INITIAL_PASSWORD);
-    toast(`Usuário do departamento cadastrado. Senha inicial: ${INITIAL_PASSWORD}.`);
-    close();
+  const enviar = () => {
+    const proximo = {};
+    if (formulario.name.trim().length < 3) proximo.name = "Informe o nome completo.";
+    if (!ehEmail(formulario.email)) proximo.email = "Informe um e-mail válido.";
+    else if (emailEmUso(dadosAplicacao, formulario.email)) proximo.email = "Já existe um usuário com este e-mail.";
+    if (formulario.phone.replace(/\D/g, "").length < 10) proximo.phone = "Informe um telefone com DDD.";
+    definirErros(proximo);
+    if (Object.keys(proximo).length) return;
+    adicionarConta(`u-${identificadorUnico()}`, { role: "department", name: formulario.name.trim(), email: formulario.email.trim(), phone: formulario.phone, departmentId: departamento.id, emailNotifications: true }, SENHA_INICIAL);
+    aviso(`Usuário do departamento cadastrado. Senha inicial: ${SENHA_INICIAL}.`);
+    fechar();
   };
 
-  const del = ([key, p]) => confirm({ title: "Excluir usuário", message: `Excluir ${p.name}? Ele(a) perderá o acesso ao departamento.`, onConfirm: () => { removeAccounts((_, k) => k === key); toast("Usuário excluído"); } });
+  const excluir = ([chave, parametro]) => confirmar({ title: "Excluir usuário", message: `Excluir ${parametro.name}? Ele(a) perderá o acesso ao departamento.`, onConfirm: () => { removerContas((ignorado, chave) => chave === chave); aviso("Usuário excluído"); } });
 
   return (
-    <Card className="p-5">
+    <Cartao className="p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="font-bold">Usuários do departamento ({users.length})</h2>
+          <h2 className="font-bold">Usuários do departamento ({usuarios.length})</h2>
           <p className="mt-1 text-xs text-muted">Quem tem perfil Departamento cadastra outros usuários do mesmo departamento.</p>
         </div>
-        <Button variant="secondary" className="min-h-9 px-4 text-sm" onClick={() => setOpen(true)}><Icon name="plus" size={16} /> Novo usuário</Button>
+        <Botao variant="secondary" className="min-h-9 px-4 text-sm" onClick={() => definirAberto(true)}><Icone name="plus" size={16} /> Novo usuário</Botao>
       </div>
       <ul className="mt-4 divide-y divide-divider rounded-lg border border-divider text-sm">
-        {users.map(([key, p]) => (
-          <li key={key} className="flex items-center justify-between gap-3 px-4 py-2.5">
-            <span><span className="font-semibold">{p.name}</span><span className="block text-xs text-muted">{p.email}</span></span>
-            {key === account ? <Badge tone="info">Você</Badge> : <IconButton icon="trash" label={`Excluir ${p.name}`} tone="danger" size="sm" onClick={() => del([key, p])} />}
+        {usuarios.map(([chave, parametro]) => (
+          <li key={chave} className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <span><span className="font-semibold">{parametro.name}</span><span className="block text-xs text-muted">{parametro.email}</span></span>
+            {chave === conta ? <Selo tone="info">Você</Selo> : <BotaoIcone icon="trash" label={`Excluir ${parametro.name}`} tone="danger" size="sm" onClick={() => excluir([chave, parametro])} />}
           </li>
         ))}
       </ul>
-      {open && (
-        <Modal title="Novo usuário do departamento" onClose={close} footer={<><Button variant="outline" onClick={close}>Cancelar</Button><Button onClick={submit}>Salvar</Button></>}>
+      {abrir && (
+        <Modal title="Novo usuário do departamento" onClose={fechar} footer={<><Botao variant="outline" onClick={fechar}>Cancelar</Botao><Botao onClick={enviar}>Salvar</Botao></>}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field className="sm:col-span-2" label="Nome completo" value={form.name} onChange={set("name")} error={errors.name} required />
-            <Field label="E-mail" type="email" value={form.email} onChange={set("email")} error={errors.email} required />
-            <Field label="Telefone" type="tel" value={form.phone} onChange={set("phone")} error={errors.phone} placeholder="(11) 99999-9999" required />
+            <Campo className="sm:col-span-2" label="Nome completo" value={formulario.name} onChange={definir("name")} error={erros.name} required />
+            <Campo label="E-mail" type="email" value={formulario.email} onChange={definir("email")} error={erros.email} required />
+            <Campo label="Telefone" type="tel" value={formulario.phone} onChange={definir("phone")} error={erros.phone} placeholder="(11) 99999-9999" required />
           </div>
-          <p className="mt-5 rounded-lg bg-brand-soft px-4 py-3 text-xs text-brand">O novo usuário terá acesso a {department.name}. A senha inicial é {INITIAL_PASSWORD}; ele(a) pode alterá-la em Configurações.</p>
+          <p className="mt-5 rounded-lg bg-brand-soft px-4 py-3 text-xs text-brand">O novo usuário terá acesso a {departamento.name}. A senha inicial é {SENHA_INICIAL}; ele(a) pode alterá-la em Configurações.</p>
         </Modal>
       )}
-    </Card>
+    </Cartao>
   );
 }

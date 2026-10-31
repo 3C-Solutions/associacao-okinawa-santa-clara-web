@@ -1,97 +1,97 @@
 import { useState } from "react";
-import { downloadCSV, fmtDate } from "@/lib/data.js";
-import { capacityOf, enrollPerson, isFull, membersOf, openRequest, requestsOf, unenrollPerson } from "@/lib/people.js";
-import { useStore, useUser } from "@/store";
-import { Button, Card, DataTable, EmptyState, Icon, IconButton, PageHeader, SearchInput, StatusBadge, Tabs } from "@/components/ui";
-import AddMemberModal from "./AddMemberModal.jsx";
+import { baixarCsv, formatarData } from "@/lib/data.js";
+import { capacidadeDe, matricularPessoa, estaCompleto, membrosDe, abrirSolicitacao, solicitacoesDe, desmatricularPessoa } from "@/lib/people.js";
+import { usarArmazenamento, usarUsuario } from "@/store";
+import { Botao, Cartao, TabelaDados, EstadoVazio, Icone, BotaoIcone, CabecalhoPagina, EntradaBusca, SeloStatus, Abas } from "@/components/ui";
+import ModalAdicionarMembro from "./AddMemberModal.jsx";
 
 // ---------- Departamento ----------
 // Único perfil que adiciona/remove inscritos: aprova solicitações, coloca em lista de espera ou adiciona pela lista completa.
-export default function DepartmentMembers({ account }) {
-  const { state, save, notify, toast, confirm } = useStore();
-  const user = useUser(account);
-  const [q, setQ] = useState("");
-  const [tab, setTab] = useState("enrolled");
-  const [adding, setAdding] = useState(false);
-  const department = user.department;
-  if (!department) return <Card><EmptyState icon="groups" title="Departamento não encontrado" /></Card>;
+export default function MembrosDepartamento({ account: conta }) {
+  const { state: dadosAplicacao, save: salvar, notify: notificar, toast: aviso, confirm: confirmar } = usarArmazenamento();
+  const usuario = usarUsuario(conta);
+  const [consulta, definirConsulta] = useState("");
+  const [aba, definirAba] = useState("enrolled");
+  const [adicionando, definirAdicionando] = useState(false);
+  const departamento = usuario.department;
+  if (!departamento) return <Cartao><EstadoVazio icon="groups" title="Departamento não encontrado" /></Cartao>;
 
-  const members = membersOf(state, department.id);
-  const rows = members.filter((m) => `${m.name} ${m.associateName}`.toLowerCase().includes(q.trim().toLowerCase()));
-  const pending = requestsOf(state, department.id, "Pendente");
-  const waitlist = requestsOf(state, department.id, "Lista de espera");
-  const cap = capacityOf(department);
-  const full = isFull(state, department);
-  const phoneOf = (id) => state.associates.find((a) => a.id === id)?.phone || "";
-  const sinceOf = (id) => state.associates.find((a) => a.id === id)?.since || "";
-  const matches = (r) => `${r.personName} ${r.associateName}`.toLowerCase().includes(q.trim().toLowerCase());
+  const membros = membrosDe(dadosAplicacao, departamento.id);
+  const linhas = membros.filter((mes) => `${mes.name} ${mes.associateName}`.toLowerCase().includes(consulta.trim().toLowerCase()));
+  const pendente = solicitacoesDe(dadosAplicacao, departamento.id, "Pendente");
+  const listaEspera = solicitacoesDe(dadosAplicacao, departamento.id, "Lista de espera");
+  const limite = capacidadeDe(departamento);
+  const completo = estaCompleto(dadosAplicacao, departamento);
+  const telefoneDe = (identificador) => dadosAplicacao.associates.find((elementoA) => elementoA.id === identificador)?.phone || "";
+  const desde = (identificador) => dadosAplicacao.associates.find((elementoA) => elementoA.id === identificador)?.since || "";
+  const correspondencias = (resultado) => `${resultado.personName} ${resultado.associateName}`.toLowerCase().includes(consulta.trim().toLowerCase());
 
-  const notifyMember = (associateId, title, detail) => notify("member", title, detail, "department", { associateId });
-  const enroll = (associateId, personId) => {
-    const a = state.associates.find((x) => x.id === associateId);
-    if (a) save("associates", enrollPerson(a, personId, department.id));
+  const notificarMembro = (identificadorAssociado, titulo, detalhe) => notificar("member", titulo, detalhe, "department", { associateId: identificadorAssociado });
+  const matricular = (identificadorAssociado, identificadorPessoa) => {
+    const elementoA = dadosAplicacao.associates.find((valorX) => valorX.id === identificadorAssociado);
+    if (elementoA) salvar("associates", matricularPessoa(elementoA, identificadorPessoa, departamento.id));
   };
 
-  const approve = (r) => {
-    if (full) { toast("Departamento lotado. Aumente o limite ou remova um inscrito antes de aprovar.", "error"); return; }
-    enroll(r.associateId, r.personId);
-    save("enrollmentRequests", { ...r, status: "Aprovada" });
-    notifyMember(r.associateId, "Inscrição aprovada", `${r.personName} foi inscrito(a) em ${department.name}.`);
-    toast(`${r.personName} inscrito(a)`);
+  const aprovar = (resultado) => {
+    if (completo) { aviso("Departamento lotado. Aumente o limite ou remova um inscrito antes de aprovar.", "error"); return; }
+    matricular(resultado.associateId, resultado.personId);
+    salvar("enrollmentRequests", { ...resultado, status: "Aprovada" });
+    notificarMembro(resultado.associateId, "Inscrição aprovada", `${resultado.personName} foi inscrito(a) em ${departamento.name}.`);
+    aviso(`${resultado.personName} inscrito(a)`);
   };
-  const toWaitlist = (r) => { save("enrollmentRequests", { ...r, status: "Lista de espera" }); notifyMember(r.associateId, "Lista de espera", `${r.personName} entrou na lista de espera de ${department.name}.`); toast("Colocado em lista de espera"); };
-  const reject = (r) => confirm({ title: "Recusar solicitação", message: `Recusar a solicitação de ${r.personName}?`, confirmLabel: "Recusar", onConfirm: () => { save("enrollmentRequests", { ...r, status: "Recusada" }); notifyMember(r.associateId, "Solicitação recusada", `A solicitação de ${r.personName} em ${department.name} não foi aprovada.`); toast("Solicitação recusada"); } });
-  const addDirect = (p) => {
-    if (full) { toast("Departamento lotado.", "error"); return; }
-    enroll(p.associateId, p.id);
-    const open = openRequest(state, department.id, p.id);
-    if (open) save("enrollmentRequests", { ...open, status: "Aprovada" });
-    notifyMember(p.associateId, "Inscrição realizada", `${p.name} foi inscrito(a) em ${department.name}.`);
-    toast(`${p.name} adicionado(a)`);
+  const adicionarAListaEspera = (resultado) => { salvar("enrollmentRequests", { ...resultado, status: "Lista de espera" }); notificarMembro(resultado.associateId, "Lista de espera", `${resultado.personName} entrou na lista de espera de ${departamento.name}.`); aviso("Colocado em lista de espera"); };
+  const rejeitar = (resultado) => confirmar({ title: "Recusar solicitação", message: `Recusar a solicitação de ${resultado.personName}?`, confirmLabel: "Recusar", onConfirm: () => { salvar("enrollmentRequests", { ...resultado, status: "Recusada" }); notificarMembro(resultado.associateId, "Solicitação recusada", `A solicitação de ${resultado.personName} em ${departamento.name} não foi aprovada.`); aviso("Solicitação recusada"); } });
+  const adicionarDiretamente = (parametro) => {
+    if (completo) { aviso("Departamento lotado.", "error"); return; }
+    matricular(parametro.associateId, parametro.id);
+    const abrir = abrirSolicitacao(dadosAplicacao, departamento.id, parametro.id);
+    if (abrir) salvar("enrollmentRequests", { ...abrir, status: "Aprovada" });
+    notificarMembro(parametro.associateId, "Inscrição realizada", `${parametro.name} foi inscrito(a) em ${departamento.name}.`);
+    aviso(`${parametro.name} adicionado(a)`);
   };
-  const removeMember = (m) => confirm({ title: "Remover inscrito", message: `Remover ${m.name} de ${department.name}?`, confirmLabel: "Remover", onConfirm: () => {
-    const a = state.associates.find((x) => x.id === m.associateId);
-    if (a) save("associates", unenrollPerson(a, m.id, department.id));
-    notifyMember(m.associateId, "Inscrição encerrada", `${m.name} foi removido(a) de ${department.name}.`);
-    toast("Inscrito removido");
+  const removerMembro = (mes) => confirmar({ title: "Remover inscrito", message: `Remover ${mes.name} de ${departamento.name}?`, confirmLabel: "Remover", onConfirm: () => {
+    const elementoA = dadosAplicacao.associates.find((valorX) => valorX.id === mes.associateId);
+    if (elementoA) salvar("associates", desmatricularPessoa(elementoA, mes.id, departamento.id));
+    notificarMembro(mes.associateId, "Inscrição encerrada", `${mes.name} foi removido(a) de ${departamento.name}.`);
+    aviso("Inscrito removido");
   } });
 
-  const exportCsv = () => { downloadCSV(`inscritos-${department.name}.csv`, ["Nome", "Vínculo", "Responsável", "Telefone"], rows.map((m) => [m.name, m.relation, m.associateName, phoneOf(m.associateId)])); toast("Arquivo CSV gerado"); };
+  const exportarCsv = () => { baixarCsv(`inscritos-${departamento.name}.csv`, ["Nome", "Vínculo", "Responsável", "Telefone"], linhas.map((mes) => [mes.name, mes.relation, mes.associateName, telefoneDe(mes.associateId)])); aviso("Arquivo CSV gerado"); };
 
-  const memberColumns = [
-    { key: "name", label: "Inscrito", render: (m) => <span className="font-semibold">{m.name}</span> },
-    { key: "relation", label: "Vínculo", render: (m) => (m.main ? "Responsável" : `${m.relation} de ${m.associateName}`) },
-    { key: "phone", label: "Telefone", render: (m) => phoneOf(m.associateId) },
-    { key: "since", label: "Associado desde", render: (m) => fmtDate(sinceOf(m.associateId)) },
+  const colunasMembros = [
+    { key: "name", label: "Inscrito", render: (mes) => <span className="font-semibold">{mes.name}</span> },
+    { key: "relation", label: "Vínculo", render: (mes) => (mes.main ? "Responsável" : `${mes.relation} de ${mes.associateName}`) },
+    { key: "phone", label: "Telefone", render: (mes) => telefoneDe(mes.associateId) },
+    { key: "since", label: "Associado desde", render: (mes) => formatarData(desde(mes.associateId)) },
   ];
-  const requestColumns = [
-    { key: "personName", label: "Solicitante", render: (r) => <span className="font-semibold">{r.personName}</span> },
-    { key: "relation", label: "Vínculo", render: (r) => (r.relation === "Responsável" ? "Responsável" : `${r.relation} de ${r.associateName}`) },
-    { key: "createdAt", label: "Solicitado em", render: (r) => fmtDate(r.createdAt.slice(0, 10)) },
-    { key: "status", label: "Situação", render: (r) => <StatusBadge status={r.status} /> },
+  const colunasSolicitacoes = [
+    { key: "personName", label: "Solicitante", render: (resultado) => <span className="font-semibold">{resultado.personName}</span> },
+    { key: "relation", label: "Vínculo", render: (resultado) => (resultado.relation === "Responsável" ? "Responsável" : `${resultado.relation} de ${resultado.associateName}`) },
+    { key: "createdAt", label: "Solicitado em", render: (resultado) => formatarData(resultado.createdAt.slice(0, 10)) },
+    { key: "status", label: "Situação", render: (resultado) => <SeloStatus status={resultado.status} /> },
   ];
-  const requestActions = (r) => (
+  const acoesSolicitacao = (resultado) => (
     <>
-      <Button className="min-h-9 px-3 text-sm" onClick={() => approve(r)}><Icon name="check" size={16} /> Aprovar</Button>
-      {r.status === "Pendente" && <Button variant="secondary" className="min-h-9 px-3 text-sm" onClick={() => toWaitlist(r)}><Icon name="clock" size={16} /> Lista de espera</Button>}
-      <IconButton icon="close" label="Recusar" tone="danger" size="sm" onClick={() => reject(r)} />
+      <Botao className="min-h-9 px-3 text-sm" onClick={() => aprovar(resultado)}><Icone name="check" size={16} /> Aprovar</Botao>
+      {resultado.status === "Pendente" && <Botao variant="secondary" className="min-h-9 px-3 text-sm" onClick={() => adicionarAListaEspera(resultado)}><Icone name="clock" size={16} /> Lista de espera</Botao>}
+      <BotaoIcone icon="close" label="Recusar" tone="danger" size="sm" onClick={() => rejeitar(resultado)} />
     </>
   );
 
   return (
     <div className="space-y-6">
-      <PageHeader left={<SearchInput value={q} onChange={setQ} placeholder="Buscar por nome" className="max-w-md" />}>
-        <Button variant="outline" onClick={exportCsv} disabled={!rows.length}><Icon name="download" size={18} /> Exportar</Button>
-        <Button onClick={() => setAdding(true)}><Icon name="plus" size={18} /> Adicionar associado</Button>
-      </PageHeader>
+      <CabecalhoPagina left={<EntradaBusca value={consulta} onChange={definirConsulta} placeholder="Buscar por nome" className="max-w-md" />}>
+        <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length}><Icone name="download" size={18} /> Exportar</Botao>
+        <Botao onClick={() => definirAdicionando(true)}><Icone name="plus" size={18} /> Adicionar associado</Botao>
+      </CabecalhoPagina>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs value={tab} onChange={setTab} options={[{ value: "enrolled", label: `Inscritos (${members.length})` }, { value: "requests", label: `Solicitações (${pending.length})` }, { value: "waitlist", label: `Lista de espera (${waitlist.length})` }]} />
-        <p className="text-sm text-muted">{cap ? <>Vagas: <strong className={full ? "text-danger" : "text-brand"}>{members.length} de {cap}</strong> preenchidas{full ? " — departamento lotado" : ""}</> : `${members.length} inscritos · sem limite definido`}</p>
+        <Abas value={aba} onChange={definirAba} options={[{ value: "enrolled", label: `Inscritos (${membros.length})` }, { value: "requests", label: `Solicitações (${pendente.length})` }, { value: "waitlist", label: `Lista de espera (${listaEspera.length})` }]} />
+        <p className="text-sm text-muted">{limite ? <>Vagas: <strong className={completo ? "text-danger" : "text-brand"}>{membros.length} de {limite}</strong> preenchidas{completo ? " — departamento lotado" : ""}</> : `${membros.length} inscritos · sem limite definido`}</p>
       </div>
-      {tab === "enrolled" && <DataTable columns={memberColumns} rows={rows} empty={<EmptyState icon="person" title="Nenhum inscrito encontrado" />} actions={(m) => <IconButton icon="trash" label="Remover do departamento" tone="danger" size="sm" onClick={() => removeMember(m)} />} />}
-      {tab === "requests" && <DataTable columns={requestColumns} rows={pending.filter(matches)} empty={<EmptyState icon="clock" title="Nenhuma solicitação pendente">Quando um associado solicitar inscrição, ela aparecerá aqui para você aprovar ou colocar em lista de espera.</EmptyState>} actions={requestActions} />}
-      {tab === "waitlist" && <DataTable columns={requestColumns} rows={waitlist.filter(matches)} empty={<EmptyState icon="clock" title="Lista de espera vazia" />} actions={requestActions} />}
-      {adding && <AddMemberModal department={department} onClose={() => setAdding(false)} onAdd={addDirect} />}
+      {aba === "enrolled" && <TabelaDados columns={colunasMembros} rows={linhas} empty={<EstadoVazio icon="person" title="Nenhum inscrito encontrado" />} actions={(mes) => <BotaoIcone icon="trash" label="Remover do departamento" tone="danger" size="sm" onClick={() => removerMembro(mes)} />} />}
+      {aba === "requests" && <TabelaDados columns={colunasSolicitacoes} rows={pendente.filter(correspondencias)} empty={<EstadoVazio icon="clock" title="Nenhuma solicitação pendente">Quando um associado solicitar inscrição, ela aparecerá aqui para você aprovar ou colocar em lista de espera.</EstadoVazio>} actions={acoesSolicitacao} />}
+      {aba === "waitlist" && <TabelaDados columns={colunasSolicitacoes} rows={listaEspera.filter(correspondencias)} empty={<EstadoVazio icon="clock" title="Lista de espera vazia" />} actions={acoesSolicitacao} />}
+      {adicionando && <ModalAdicionarMembro department={departamento} onClose={() => definirAdicionando(false)} onAdd={adicionarDiretamente} />}
     </div>
   );
 }

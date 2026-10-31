@@ -1,51 +1,51 @@
 import { useState } from "react";
-import { capacityOf, countInDepartment } from "@/lib/people.js";
-import { useStore } from "@/store";
-import { Badge, Button, Card, EmptyState, Icon, IconButton, PageHeader, SearchInput, Toggle } from "@/components/ui";
-import DepartmentDetails from "./DepartmentDetails.jsx";
-import DepartmentForm from "./DepartmentForm.jsx";
+import { capacidadeDe, quantidadeNoDepartamento } from "@/lib/people.js";
+import { usarArmazenamento } from "@/store";
+import { Selo, Botao, Cartao, EstadoVazio, Icone, BotaoIcone, CabecalhoPagina, EntradaBusca, Alternador } from "@/components/ui";
+import DetalhesDepartamento from "./DepartmentDetails.jsx";
+import FormularioDepartamento from "./DepartmentForm.jsx";
 
 // ---------- Diretoria ----------
-export default function AdminDepartments() {
-  const { state, save, remove, toast, confirm } = useStore();
-  const [q, setQ] = useState("");
-  const [editing, setEditing] = useState(null);
-  const [viewing, setViewing] = useState(null);
-  const list = state.departments.filter((d) => d.name.toLowerCase().includes(q.trim().toLowerCase()));
+export default function DepartamentosAdmin() {
+  const { state: dadosAplicacao, save: salvar, remove: remover, toast: aviso, confirm: confirmar } = usarArmazenamento();
+  const [consulta, definirConsulta] = useState("");
+  const [editando, definirEditando] = useState(null);
+  const [visualizando, definirVisualizando] = useState(null);
+  const lista = dadosAplicacao.departments.filter((dataValor) => dataValor.name.toLowerCase().includes(consulta.trim().toLowerCase()));
 
-  const del = (d) => confirm({ title: "Excluir departamento", message: `Excluir “${d.name}”? As inscrições dos associados nesse departamento também serão removidas.`, onConfirm: () => { remove("departments", d.id); toast("Departamento excluído"); } });
-  const toggleActive = (d) => { save("departments", { ...d, active: !d.active }); toast(d.active ? "Departamento desativado" : "Departamento ativado"); };
+  const excluir = (dataValor) => confirmar({ title: "Excluir departamento", message: `Excluir “${dataValor.name}”? As inscrições dos associados nesse departamento também serão removidas.`, onConfirm: () => { remover("departments", dataValor.id); aviso("Departamento excluído"); } });
+  const alternarAtivo = (dataValor) => { salvar("departments", { ...dataValor, active: !dataValor.active }); aviso(dataValor.active ? "Departamento desativado" : "Departamento ativado"); };
 
   return (
     <div>
-      <PageHeader left={<SearchInput value={q} onChange={setQ} placeholder="Buscar departamento" className="max-w-md" />}>
-        <Button onClick={() => setEditing({ name: "", description: "", day: "Quarta-feira", time: "19:00", teacher: "", fee: "0", capacity: "20", active: true, image: "" })}><Icon name="plus" size={18} /> Novo departamento</Button>
-      </PageHeader>
-      {list.length === 0 ? <Card><EmptyState icon="groups" title="Nenhum departamento encontrado" /></Card> : (
+      <CabecalhoPagina left={<EntradaBusca value={consulta} onChange={definirConsulta} placeholder="Buscar departamento" className="max-w-md" />}>
+        <Botao onClick={() => definirEditando({ name: "", description: "", day: "Quarta-feira", time: "19:00", teacher: "", fee: "0", capacity: "20", active: true, image: "" })}><Icone name="plus" size={18} /> Novo departamento</Botao>
+      </CabecalhoPagina>
+      {lista.length === 0 ? <Cartao><EstadoVazio icon="groups" title="Nenhum departamento encontrado" /></Cartao> : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {list.map((d) => (
-            <Card key={d.id} className="flex flex-col overflow-hidden">
-              {d.image ? <img src={d.image} alt="" className="aspect-[2/1] w-full object-cover" /> : <div className="grid aspect-[2/1] place-items-center bg-brand-soft text-brand"><Icon name="groups" size={32} /></div>}
+          {lista.map((dataValor) => (
+            <Cartao key={dataValor.id} className="flex flex-col overflow-hidden">
+              {dataValor.image ? <img src={dataValor.image} alt="" className="aspect-[2/1] w-full object-cover" /> : <div className="grid aspect-[2/1] place-items-center bg-brand-soft text-brand"><Icone name="groups" size={32} /></div>}
               <div className="flex flex-1 flex-col p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div><h2 className="text-xl font-bold">{d.name}</h2><p className="mt-1 text-sm text-muted">{countInDepartment(state, d.id)}/{capacityOf(d) || "∞"} inscritos · {d.day}, {d.time}</p></div>
-                  <Badge tone={d.active ? "success" : "danger"}>{d.active ? "Ativo" : "Inativo"}</Badge>
+                  <div><h2 className="text-xl font-bold">{dataValor.name}</h2><p className="mt-1 text-sm text-muted">{quantidadeNoDepartamento(dadosAplicacao, dataValor.id)}/{capacidadeDe(dataValor) || "∞"} inscritos · {dataValor.day}, {dataValor.time}</p></div>
+                  <Selo tone={dataValor.active ? "success" : "danger"}>{dataValor.active ? "Ativo" : "Inativo"}</Selo>
                 </div>
                 <div className="mt-auto flex items-center justify-between gap-2 pt-5">
-                  <Button variant="secondary" className="min-h-9 px-4 text-sm" onClick={() => setViewing(d)}>Ver detalhes</Button>
+                  <Botao variant="secondary" className="min-h-9 px-4 text-sm" onClick={() => definirVisualizando(dataValor)}>Ver detalhes</Botao>
                   <div className="flex items-center gap-1">
-                    <Toggle checked={d.active} onChange={() => toggleActive(d)} label={d.active ? "Desativar" : "Ativar"} />
-                    <IconButton icon="edit" label="Editar" size="sm" onClick={() => setEditing({ ...d, fee: String(d.fee), capacity: String(capacityOf(d) || "") })} />
-                    <IconButton icon="trash" label="Excluir" tone="danger" size="sm" onClick={() => del(d)} />
+                    <Alternador checked={dataValor.active} onChange={() => alternarAtivo(dataValor)} label={dataValor.active ? "Desativar" : "Ativar"} />
+                    <BotaoIcone icon="edit" label="Editar" size="sm" onClick={() => definirEditando({ ...dataValor, fee: String(dataValor.fee), capacity: String(capacidadeDe(dataValor) || "") })} />
+                    <BotaoIcone icon="trash" label="Excluir" tone="danger" size="sm" onClick={() => excluir(dataValor)} />
                   </div>
                 </div>
               </div>
-            </Card>
+            </Cartao>
           ))}
         </div>
       )}
-      {editing && <DepartmentForm department={editing} enrolled={editing.id ? countInDepartment(state, editing.id) : 0} onClose={() => setEditing(null)} onSave={(d) => { save("departments", { ...d, fee: Number(d.fee), capacity: Number(d.capacity) }); toast(d.id ? "Departamento atualizado" : "Departamento criado"); setEditing(null); }} />}
-      {viewing && <DepartmentDetails department={state.departments.find((d) => d.id === viewing.id)} onClose={() => setViewing(null)} />}
+      {editando && <FormularioDepartamento department={editando} enrolled={editando.id ? quantidadeNoDepartamento(dadosAplicacao, editando.id) : 0} onClose={() => definirEditando(null)} onSave={(dataValor) => { salvar("departments", { ...dataValor, fee: Number(dataValor.fee), capacity: Number(dataValor.capacity) }); aviso(dataValor.id ? "Departamento atualizado" : "Departamento criado"); definirEditando(null); }} />}
+      {visualizando && <DetalhesDepartamento department={dadosAplicacao.departments.find((dataValor) => dataValor.id === visualizando.id)} onClose={() => definirVisualizando(null)} />}
     </div>
   );
 }

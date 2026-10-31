@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { fmtDate } from "@/lib/data.js";
-import { Button, Modal, TextAreaField } from "@/components/ui";
+import { formatarData } from "@/lib/data.js";
+import { Botao, Modal, CampoAreaTexto } from "@/components/ui";
 
-export default function RejectModal({ reservation, onClose, onConfirm }) {
-  const [reason, setReason] = useState("");
+export default function ModalRejeicao({ reservation: reserva, onClose: aoFechar, onConfirm: aoConfirmar }) {
+  const [motivo, definirMotivo] = useState("");
   return (
-    <Modal size="sm" title="Recusar reserva" onClose={onClose} footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button variant="danger" onClick={() => onConfirm(reason.trim())}>Recusar</Button></>}>
-      <p className="mb-4 text-sm text-muted">“{reservation.title}” — {reservation.ownerName}, {fmtDate(reservation.date)} às {reservation.time}.</p>
-      <TextAreaField label="Motivo (opcional)" rows={3} value={reason} onChange={setReason} />
+    <Modal size="sm" title="Recusar reserva" onClose={aoFechar} footer={<><Botao variant="outline" onClick={aoFechar}>Cancelar</Botao><Botao variant="danger" onClick={() => aoConfirmar(motivo.trim())}>Recusar</Botao></>}>
+      <p className="mb-4 text-sm text-muted">“{reserva.title}” — {reserva.ownerName}, {formatarData(reserva.date)} às {reserva.time}.</p>
+      <CampoAreaTexto label="Motivo (opcional)" rows={3} value={motivo} onChange={definirMotivo} />
     </Modal>
   );
 }

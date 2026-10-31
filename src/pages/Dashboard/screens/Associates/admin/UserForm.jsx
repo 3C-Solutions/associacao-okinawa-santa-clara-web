@@ -1,94 +1,94 @@
 import { useState } from "react";
-import { ADMIN_CREATABLE_TYPES, INITIAL_PASSWORD, RELATIONS, USER_TYPES, isEmail, maskPhone, todayISO } from "@/lib/data.js";
-import { associateOfFamily, emailInUse, familyLabel } from "@/lib/people.js";
-import { useStore } from "@/store";
-import { Button, Field, Modal, SelectField } from "@/components/ui";
+import { TIPOS_CRIAVEIS_ADMIN, SENHA_INICIAL, RELACOES, TIPOS_USUARIOS, ehEmail, mascararTelefone, hojeISO } from "@/lib/data.js";
+import { associadoDaFamilia, emailEmUso, rotuloFamilia } from "@/lib/people.js";
+import { usarArmazenamento } from "@/store";
+import { Botao, Campo, Modal, CampoSelecao } from "@/components/ui";
 
-const typeLabel = (type) => USER_TYPES.find((t) => t.value === type)?.label || "";
+const rotuloTipo = (tipo) => TIPOS_USUARIOS.find((tempo) => tempo.value === tipo)?.label || "";
 
 // Cadastro de UM usuário por vez: a diretoria só cadastra Diretoria e Associado responsável (Departamento e Dependente são cadastrados por quem é dono deles).
 // user = null (novo) ou a linha da lista (edição; o tipo não pode ser trocado).
-export default function UserForm({ user, onClose, onSave, onGoToFamilies }) {
-  const { state } = useStore();
-  const editing = !!user;
-  const [form, setForm] = useState(() => ({
-    type: user?.type || "",
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    departmentId: user?.departmentIds?.[0] || "",
-    familyId: user?.associate?.familyId || "",
-    since: user?.associate?.since || todayISO(),
-    relation: user?.person?.relation || "Filho(a)",
+export default function FormularioUsuario({ user: usuario, onClose: aoFechar, onSave: aoSalvar, onGoToFamilies: aoIrParaFamilias }) {
+  const { state: dadosAplicacao } = usarArmazenamento();
+  const editando = !!usuario;
+  const [formulario, definirFormulario] = useState(() => ({
+    type: usuario?.type || "",
+    name: usuario?.name || "",
+    email: usuario?.email || "",
+    phone: usuario?.phone || "",
+    departmentId: usuario?.departmentIds?.[0] || "",
+    familyId: usuario?.associate?.familyId || "",
+    since: usuario?.associate?.since || hojeISO(),
+    relation: usuario?.person?.relation || "Filho(a)",
   }));
-  const [errors, setErrors] = useState({});
-  const set = (key) => (value) => { setForm((f) => ({ ...f, [key]: key === "phone" ? maskPhone(value) : value })); setErrors((e) => ({ ...e, [key]: undefined })); };
+  const [erros, definirErros] = useState({});
+  const definir = (chave) => (valor) => { definirFormulario((elementoF) => ({ ...elementoF, [chave]: chave === "phone" ? mascararTelefone(valor) : valor })); definirErros((evento) => ({ ...evento, [chave]: undefined })); };
 
   // Associado responsável: só famílias já cadastradas e que ainda não têm responsável (a própria, se estiver editando).
   // Dependente: só famílias que já têm um associado responsável.
-  const ownFamilyId = editing && user.type === "member" ? user.associate.familyId : null;
-  const familiesFor = (type) => state.families.filter((f) => {
-    const responsible = associateOfFamily(state, f.id);
-    return type === "member" ? !responsible || f.id === ownFamilyId : !!responsible;
+  const identificadorPropriaFamilia = editando && usuario.type === "member" ? usuario.associate.familyId : null;
+  const familiasDe = (tipo) => dadosAplicacao.families.filter((elementoF) => {
+    const responsavel = associadoDaFamilia(dadosAplicacao, elementoF.id);
+    return tipo === "member" ? !responsavel || elementoF.id === identificadorPropriaFamilia : !!responsavel;
   });
-  const familyOptions = (type) => familiesFor(type).map((f) => ({ value: f.id, label: `${familyLabel(f)} · ${f.address}${f.number ? `, ${f.number}` : ""}` }));
-  const availableFamilies = form.type === "member" || form.type === "dependent" ? familyOptions(form.type) : [];
-  const needsFamily = form.type === "member" || form.type === "dependent";
-  const noFamily = needsFamily && availableFamilies.length === 0;
+  const opcoesFamilia = (tipo) => familiasDe(tipo).map((elementoF) => ({ value: elementoF.id, label: `${rotuloFamilia(elementoF)} · ${elementoF.address}${elementoF.number ? `, ${elementoF.number}` : ""}` }));
+  const familiasDisponiveis = formulario.type === "member" || formulario.type === "dependent" ? opcoesFamilia(formulario.type) : [];
+  const precisaDeFamilia = formulario.type === "member" || formulario.type === "dependent";
+  const semFamilia = precisaDeFamilia && familiasDisponiveis.length === 0;
 
-  const ignoreIds = editing ? [user.id, user.person?.id, user.associate?.id].filter(Boolean) : [];
+  const ignorarIdentificadores = editando ? [usuario.id, usuario.person?.id, usuario.associate?.id].filter(Boolean) : [];
 
-  const submit = () => {
-    const next = {};
-    if (!form.type) next.type = "Selecione o tipo de perfil.";
-    if (form.name.trim().length < 3) next.name = "Informe o nome completo.";
-    if (!isEmail(form.email)) next.email = "Informe um e-mail válido.";
-    else if (emailInUse(state, form.email, ignoreIds)) next.email = "Já existe um usuário com este e-mail.";
-    if (form.phone.replace(/\D/g, "").length < 10) next.phone = "Informe um telefone com DDD.";
-    if (form.type === "department" && !form.departmentId) next.departmentId = "Selecione o departamento.";
-    if (needsFamily && !form.familyId) next.familyId = noFamily ? "Cadastre uma família antes de continuar." : "Selecione a família.";
-    if (form.type === "member" && !form.since) next.since = "Informe a data de início.";
-    setErrors(next);
-    if (!Object.keys(next).length) onSave({ ...form, name: form.name.trim(), email: form.email.trim() });
+  const enviar = () => {
+    const proximo = {};
+    if (!formulario.type) proximo.type = "Selecione o tipo de perfil.";
+    if (formulario.name.trim().length < 3) proximo.name = "Informe o nome completo.";
+    if (!ehEmail(formulario.email)) proximo.email = "Informe um e-mail válido.";
+    else if (emailEmUso(dadosAplicacao, formulario.email, ignorarIdentificadores)) proximo.email = "Já existe um usuário com este e-mail.";
+    if (formulario.phone.replace(/\D/g, "").length < 10) proximo.phone = "Informe um telefone com DDD.";
+    if (formulario.type === "department" && !formulario.departmentId) proximo.departmentId = "Selecione o departamento.";
+    if (precisaDeFamilia && !formulario.familyId) proximo.familyId = semFamilia ? "Cadastre uma família antes de continuar." : "Selecione a família.";
+    if (formulario.type === "member" && !formulario.since) proximo.since = "Informe a data de início.";
+    definirErros(proximo);
+    if (!Object.keys(proximo).length) aoSalvar({ ...formulario, name: formulario.name.trim(), email: formulario.email.trim() });
   };
 
   return (
-    <Modal title={editing ? `Editar ${typeLabel(form.type).toLowerCase()}` : "Novo usuário"} onClose={onClose} footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit} disabled={noFamily}>Salvar</Button></>}>
+    <Modal title={editando ? `Editar ${rotuloTipo(formulario.type).toLowerCase()}` : "Novo usuário"} onClose={aoFechar} footer={<><Botao variant="outline" onClick={aoFechar}>Cancelar</Botao><Botao onClick={enviar} disabled={semFamilia}>Salvar</Botao></>}>
       <div className="grid gap-4 sm:grid-cols-2">
-        {editing
-          ? <Field className="sm:col-span-2" label="Tipo de perfil" value={typeLabel(form.type)} readOnly />
-          : <SelectField className="sm:col-span-2" label="Tipo de perfil" value={form.type} onChange={(v) => setForm((f) => ({ ...f, type: v, familyId: "" }))} error={errors.type} placeholder="Selecione o tipo de perfil" options={ADMIN_CREATABLE_TYPES} required />}
+        {editando
+          ? <Campo className="sm:col-span-2" label="Tipo de perfil" value={rotuloTipo(formulario.type)} readOnly />
+          : <CampoSelecao className="sm:col-span-2" label="Tipo de perfil" value={formulario.type} onChange={(valorAuxiliar) => definirFormulario((elementoF) => ({ ...elementoF, type: valorAuxiliar, familyId: "" }))} error={erros.type} placeholder="Selecione o tipo de perfil" options={TIPOS_CRIAVEIS_ADMIN} required />}
 
-        {form.type && (
+        {formulario.type && (
           <>
-            <Field className="sm:col-span-2" label="Nome completo" value={form.name} onChange={set("name")} error={errors.name} required />
-            <Field label="E-mail" type="email" value={form.email} onChange={set("email")} error={errors.email} required />
-            <Field label="Telefone" type="tel" value={form.phone} onChange={set("phone")} error={errors.phone} placeholder="(11) 99999-9999" required />
+            <Campo className="sm:col-span-2" label="Nome completo" value={formulario.name} onChange={definir("name")} error={erros.name} required />
+            <Campo label="E-mail" type="email" value={formulario.email} onChange={definir("email")} error={erros.email} required />
+            <Campo label="Telefone" type="tel" value={formulario.phone} onChange={definir("phone")} error={erros.phone} placeholder="(11) 99999-9999" required />
           </>
         )}
 
-        {form.type === "department" && (
-          <SelectField className="sm:col-span-2" label="Departamento responsável" value={form.departmentId} onChange={set("departmentId")} error={errors.departmentId} placeholder="Selecione o departamento" options={state.departments.map((d) => ({ value: d.id, label: d.name }))} required />
+        {formulario.type === "department" && (
+          <CampoSelecao className="sm:col-span-2" label="Departamento responsável" value={formulario.departmentId} onChange={definir("departmentId")} error={erros.departmentId} placeholder="Selecione o departamento" options={dadosAplicacao.departments.map((dataValor) => ({ value: dataValor.id, label: dataValor.name }))} required />
         )}
 
-        {needsFamily && (
-          editing && user.type === "dependent"
-            ? <Field className="sm:col-span-2" label="Família" value={familyLabel(state.families.find((f) => f.id === form.familyId))} readOnly />
-            : <SelectField className="sm:col-span-2" label="Família" value={form.familyId} onChange={set("familyId")} error={errors.familyId} placeholder={noFamily ? "Nenhuma família disponível" : "Selecione a família"} options={availableFamilies} required />
+        {precisaDeFamilia && (
+          editando && usuario.type === "dependent"
+            ? <Campo className="sm:col-span-2" label="Família" value={rotuloFamilia(dadosAplicacao.families.find((elementoF) => elementoF.id === formulario.familyId))} readOnly />
+            : <CampoSelecao className="sm:col-span-2" label="Família" value={formulario.familyId} onChange={definir("familyId")} error={erros.familyId} placeholder={semFamilia ? "Nenhuma família disponível" : "Selecione a família"} options={familiasDisponiveis} required />
         )}
 
-        {form.type === "member" && <Field label="Associado desde" type="date" value={form.since} onChange={set("since")} error={errors.since} required />}
-        {form.type === "dependent" && <SelectField label="Vínculo com o responsável" value={form.relation} onChange={set("relation")} options={RELATIONS} required />}
+        {formulario.type === "member" && <Campo label="Associado desde" type="date" value={formulario.since} onChange={definir("since")} error={erros.since} required />}
+        {formulario.type === "dependent" && <CampoSelecao label="Vínculo com o responsável" value={formulario.relation} onChange={definir("relation")} options={RELACOES} required />}
       </div>
 
-      {noFamily && (
+      {semFamilia && (
         <div className="mt-5 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm" role="alert">
-          <p className="font-semibold">{form.type === "member" ? "Cadastre a família antes do associado responsável." : "Nenhuma família com associado responsável."}</p>
-          <p className="mt-1 text-muted">{form.type === "member" ? "Todo associado responsável pertence a uma família. Não há famílias sem responsável disponíveis no momento." : "Cadastre primeiro o associado responsável da família para depois incluir dependentes."}</p>
-          {form.type === "member" && <Button variant="outline" className="mt-3" onClick={onGoToFamilies}>Cadastrar família</Button>}
+          <p className="font-semibold">{formulario.type === "member" ? "Cadastre a família antes do associado responsável." : "Nenhuma família com associado responsável."}</p>
+          <p className="mt-1 text-muted">{formulario.type === "member" ? "Todo associado responsável pertence a uma família. Não há famílias sem responsável disponíveis no momento." : "Cadastre primeiro o associado responsável da família para depois incluir dependentes."}</p>
+          {formulario.type === "member" && <Botao variant="outline" className="mt-3" onClick={aoIrParaFamilias}>Cadastrar família</Botao>}
         </div>
       )}
-      <p className="mt-5 rounded-lg bg-brand-soft px-4 py-3 text-xs text-brand">Cada cadastro cria um único usuário. {editing ? "" : `A senha inicial é ${INITIAL_PASSWORD}; o próprio usuário pode alterá-la em Configurações.`}</p>
+      <p className="mt-5 rounded-lg bg-brand-soft px-4 py-3 text-xs text-brand">Cada cadastro cria um único usuário. {editando ? "" : `A senha inicial é ${SENHA_INICIAL}; o próprio usuário pode alterá-la em Configurações.`}</p>
     </Modal>
   );
 }

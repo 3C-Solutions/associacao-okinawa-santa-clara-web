@@ -1,139 +1,139 @@
 import { useMemo, useRef, useState } from "react";
-import { MONTHS, fmtDate, fromISO, isFamilyRole, todayISO } from "@/lib/data.js";
-import { useStore, useUser } from "@/store";
-import { Badge, Button, Card, DataTable, EmptyState, Icon, IconButton, StatusBadge } from "@/components/ui";
-import Calendar from "@/pages/Dashboard/components/Calendar.jsx";
-import EventForm from "./EventForm.jsx";
-import RejectModal from "./RejectModal.jsx";
-import ReservationForm from "./ReservationForm.jsx";
-import { targetOf } from "@/lib/people.js";
+import { MESES, formatarData, deISO, ehPapelFamiliar, hojeISO } from "@/lib/data.js";
+import { usarArmazenamento, usarUsuario } from "@/store";
+import { Selo, Botao, Cartao, TabelaDados, EstadoVazio, Icone, BotaoIcone, SeloStatus } from "@/components/ui";
+import Calendario from "@/pages/Dashboard/components/Calendar.jsx";
+import FormularioEvento from "./EventForm.jsx";
+import ModalRejeicao from "./RejectModal.jsx";
+import FormularioReserva from "./ReservationForm.jsx";
+import { alvoDe } from "@/lib/people.js";
 
-const byDateTime = (a, b) => (a.date + a.time).localeCompare(b.date + b.time);
+const porDataHora = (elementoA, elementoB) => (elementoA.date + elementoA.time).localeCompare(elementoB.date + elementoB.time);
 
-export default function Agenda({ role, account }) {
-  const { state, save, remove, notify, toast, confirm } = useStore();
-  const user = useUser(account);
-  const today = todayISO();
-  const admin = role === "admin";
-  const [view, setView] = useState({ y: fromISO(today).getFullYear(), m: fromISO(today).getMonth() });
-  const [selected, setSelected] = useState(today);
-  const [eventForm, setEventForm] = useState(null);
-  const [reservationForm, setReservationForm] = useState(false);
-  const [rejecting, setRejecting] = useState(null);
-  const requestsRef = useRef(null);
+export default function Agenda({ role: papel, account: conta }) {
+  const { state: dadosAplicacao, save: salvar, remove: remover, notify: notificar, toast: aviso, confirm: confirmar } = usarArmazenamento();
+  const usuario = usarUsuario(conta);
+  const hoje = hojeISO();
+  const administrador = papel === "admin";
+  const [visualizacao, definirVisualizacao] = useState({ y: deISO(hoje).getFullYear(), m: deISO(hoje).getMonth() });
+  const [selecionado, definirSelecionado] = useState(hoje);
+  const [formularioEvento, definirFormularioEvento] = useState(null);
+  const [formularioReserva, definirFormularioReserva] = useState(false);
+  const [rejeitando, definirRejeitando] = useState(null);
+  const referenciaSolicitacoes = useRef(null);
 
-  const ownerName = role === "department" ? `Departamento ${user.department?.name}` : isFamilyRole(role) ? user.profile.name : "Diretoria";
-  const myReservations = useMemo(() => state.reservations.filter((r) => admin || r.ownerId === user.ownerId).sort((a, b) => (a.status === "Pendente" ? -1 : 1) - (b.status === "Pendente" ? -1 : 1) || b.date.localeCompare(a.date)), [state.reservations, admin, user.ownerId]);
-  const pending = myReservations.filter((r) => r.status === "Pendente");
+  const nomeResponsavel = papel === "department" ? `Departamento ${usuario.department?.name}` : ehPapelFamiliar(papel) ? usuario.profile.name : "Diretoria";
+  const minhasReservas = useMemo(() => dadosAplicacao.reservations.filter((resultado) => administrador || resultado.ownerId === usuario.ownerId).sort((elementoA, elementoB) => (elementoA.status === "Pendente" ? -1 : 1) - (elementoB.status === "Pendente" ? -1 : 1) || elementoB.date.localeCompare(elementoA.date)), [dadosAplicacao.reservations, administrador, usuario.ownerId]);
+  const pendente = minhasReservas.filter((resultado) => resultado.status === "Pendente");
 
-  const marks = {};
-  pending.forEach((r) => { marks[r.date] = "pending"; });
-  state.events.forEach((e) => { marks[e.date] = "event"; });
+  const marcacoes = {};
+  pendente.forEach((resultado) => { marcacoes[resultado.date] = "pending"; });
+  dadosAplicacao.events.forEach((evento) => { marcacoes[evento.date] = "event"; });
 
-  const monthPrefix = `${view.y}-${String(view.m + 1).padStart(2, "0")}`;
-  const monthEvents = state.events.filter((e) => e.date.startsWith(monthPrefix)).sort(byDateTime);
-  const dayEvents = state.events.filter((e) => e.date === selected).sort(byDateTime);
-  const dayPending = pending.filter((r) => r.date === selected);
+  const prefixoMes = `${visualizacao.y}-${String(visualizacao.m + 1).padStart(2, "0")}`;
+  const eventosMensais = dadosAplicacao.events.filter((evento) => evento.date.startsWith(prefixoMes)).sort(porDataHora);
+  const eventosDoDia = dadosAplicacao.events.filter((evento) => evento.date === selecionado).sort(porDataHora);
+  const pendenciasDoDia = pendente.filter((resultado) => resultado.date === selecionado);
 
-  const hasConflict = (date, time) => state.events.some((e) => e.date === date && e.time === time);
+  const temConflito = (data, horario) => dadosAplicacao.events.some((evento) => evento.date === data && evento.time === horario);
 
-  const approve = (r) => {
-    if (hasConflict(r.date, r.time)) { toast("Já existe um evento nesta data e horário.", "error"); return; }
-    save("reservations", { ...r, status: "Aprovada", decidedAt: new Date().toISOString() });
-    save("events", { date: r.date, time: r.time, title: r.title, category: "Comunidade", owner: r.ownerName, reservationId: r.id });
-    notify(r.role, "Reserva aprovada", `Sua solicitação para ${fmtDate(r.date)} às ${r.time} foi autorizada pela Diretoria.`, "agenda", targetOf(r.role, r.ownerId));
-    toast("Reserva aprovada e evento criado");
+  const aprovar = (resultado) => {
+    if (temConflito(resultado.date, resultado.time)) { aviso("Já existe um evento nesta data e horário.", "error"); return; }
+    salvar("reservations", { ...resultado, status: "Aprovada", decidedAt: new Date().toISOString() });
+    salvar("events", { date: resultado.date, time: resultado.time, title: resultado.title, category: "Comunidade", owner: resultado.ownerName, reservationId: resultado.id });
+    notificar(resultado.role, "Reserva aprovada", `Sua solicitação para ${formatarData(resultado.date)} às ${resultado.time} foi autorizada pela Diretoria.`, "agenda", alvoDe(resultado.role, resultado.ownerId));
+    aviso("Reserva aprovada e evento criado");
   };
-  const reject = (r, reason) => {
-    save("reservations", { ...r, status: "Recusada", reason, decidedAt: new Date().toISOString() });
-    notify(r.role, "Reserva recusada", `Sua solicitação para ${fmtDate(r.date)} não foi autorizada${reason ? `: ${reason}` : "."}`, "agenda", targetOf(r.role, r.ownerId));
-    toast("Reserva recusada");
-    setRejecting(null);
+  const rejeitar = (resultado, motivo) => {
+    salvar("reservations", { ...resultado, status: "Recusada", reason: motivo, decidedAt: new Date().toISOString() });
+    notificar(resultado.role, "Reserva recusada", `Sua solicitação para ${formatarData(resultado.date)} não foi autorizada${motivo ? `: ${motivo}` : "."}`, "agenda", alvoDe(resultado.role, resultado.ownerId));
+    aviso("Reserva recusada");
+    definirRejeitando(null);
   };
-  const cancel = (r) => confirm({ title: "Cancelar solicitação", message: `Cancelar a solicitação “${r.title}”?`, confirmLabel: "Cancelar solicitação", onConfirm: () => { save("reservations", { ...r, status: "Cancelada" }); toast("Solicitação cancelada"); } });
-  const removeEvent = (e) => confirm({ title: "Excluir evento", message: `Excluir o evento “${e.title}” de ${fmtDate(e.date)}?`, onConfirm: () => { remove("events", e.id); toast("Evento excluído"); } });
+  const cancelar = (resultado) => confirmar({ title: "Cancelar solicitação", message: `Cancelar a solicitação “${resultado.title}”?`, confirmLabel: "Cancelar solicitação", onConfirm: () => { salvar("reservations", { ...resultado, status: "Cancelada" }); aviso("Solicitação cancelada"); } });
+  const removerEvento = (evento) => confirmar({ title: "Excluir evento", message: `Excluir o evento “${evento.title}” de ${formatarData(evento.date)}?`, onConfirm: () => { remover("events", evento.id); aviso("Evento excluído"); } });
 
-  const eventColumns = [
-    { key: "date", label: "Data", render: (e) => fmtDate(e.date) },
+  const colunasEventos = [
+    { key: "date", label: "Data", render: (evento) => formatarData(evento.date) },
     { key: "title", label: "Evento" },
-    { key: "category", label: "Categoria", render: (e) => <Badge tone="info">{e.category}</Badge> },
+    { key: "category", label: "Categoria", render: (evento) => <Selo tone="info">{evento.category}</Selo> },
     { key: "owner", label: "Responsável" },
     { key: "time", label: "Horário" },
   ];
-  const reservationColumns = [
-    { key: "date", label: "Data", render: (r) => `${fmtDate(r.date)} · ${r.time}` },
-    { key: "title", label: "Finalidade", render: (r) => <span>{r.title}{r.reason && <span className="mt-1 block text-xs text-muted">Motivo: {r.reason}</span>}</span> },
-    ...(admin ? [{ key: "ownerName", label: "Solicitante" }] : []),
-    { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
+  const colunasReservas = [
+    { key: "date", label: "Data", render: (resultado) => `${formatarData(resultado.date)} · ${resultado.time}` },
+    { key: "title", label: "Finalidade", render: (resultado) => <span>{resultado.title}{resultado.reason && <span className="mt-1 block text-xs text-muted">Motivo: {resultado.reason}</span>}</span> },
+    ...(administrador ? [{ key: "ownerName", label: "Solicitante" }] : []),
+    { key: "status", label: "Status", render: (resultado) => <SeloStatus status={resultado.status} /> },
   ];
 
   return (
     <div className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-12">
-        <div className="xl:col-span-7"><Calendar marks={marks} selected={selected} onSelect={setSelected} view={view} onView={setView} /></div>
+        <div className="xl:col-span-7"><Calendario marks={marcacoes} selected={selecionado} onSelect={definirSelecionado} view={visualizacao} onView={definirVisualizacao} /></div>
         <div className="flex flex-col gap-6 xl:col-span-5">
-          <Card className="flex flex-col gap-3 p-6">
+          <Cartao className="flex flex-col gap-3 p-6">
             <h2 className="mb-1 text-lg font-bold">Ações da agenda</h2>
-            {admin ? (
+            {administrador ? (
               <>
-                <Button onClick={() => setEventForm({ date: selected, time: "19:00", title: "", category: "Cultural", owner: "Diretoria" })}><Icon name="plus" size={18} /> Novo evento</Button>
-                <Button variant="secondary" onClick={() => requestsRef.current?.scrollIntoView({ behavior: "smooth" })}>Autorizar reservas {pending.length > 0 && <span className="rounded-full bg-danger px-2 py-0.5 text-xs text-white">{pending.length}</span>}</Button>
+                <Botao onClick={() => definirFormularioEvento({ date: selecionado, time: "19:00", title: "", category: "Cultural", owner: "Diretoria" })}><Icone name="plus" size={18} /> Novo evento</Botao>
+                <Botao variant="secondary" onClick={() => referenciaSolicitacoes.current?.scrollIntoView({ behavior: "smooth" })}>Autorizar reservas {pendente.length > 0 && <span className="rounded-full bg-danger px-2 py-0.5 text-xs text-white">{pendente.length}</span>}</Botao>
               </>
             ) : (
               <>
                 <p className="text-sm leading-relaxed text-muted">Escolha uma data disponível e envie sua solicitação para análise da Diretoria.</p>
-                <Button onClick={() => setReservationForm(true)}>Solicitar reserva</Button>
+                <Botao onClick={() => definirFormularioReserva(true)}>Solicitar reserva</Botao>
               </>
             )}
-          </Card>
-          <Card className="flex-1 p-6">
-            <h2 className="text-lg font-bold">{fmtDate(selected)}</h2>
-            {dayEvents.length === 0 && dayPending.length === 0 ? <p className="mt-3 text-sm text-muted">Nenhum evento neste dia.</p> : (
+          </Cartao>
+          <Cartao className="flex-1 p-6">
+            <h2 className="text-lg font-bold">{formatarData(selecionado)}</h2>
+            {eventosDoDia.length === 0 && pendenciasDoDia.length === 0 ? <p className="mt-3 text-sm text-muted">Nenhum evento neste dia.</p> : (
               <ul className="mt-3 divide-y divide-divider">
-                {dayEvents.map((e) => <li key={e.id} className="flex items-center justify-between gap-3 py-3"><div><p className="text-sm font-semibold">{e.title}</p><p className="mt-0.5 text-xs text-muted">{e.time} · {e.owner}</p></div><Badge tone="info">{e.category}</Badge></li>)}
-                {dayPending.map((r) => <li key={r.id} className="flex items-center justify-between gap-3 py-3"><div><p className="text-sm font-semibold">{r.title}</p><p className="mt-0.5 text-xs text-muted">{r.time} · {r.ownerName}</p></div><StatusBadge status="Pendente" /></li>)}
+                {eventosDoDia.map((evento) => <li key={evento.id} className="flex items-center justify-between gap-3 py-3"><div><p className="text-sm font-semibold">{evento.title}</p><p className="mt-0.5 text-xs text-muted">{evento.time} · {evento.owner}</p></div><Selo tone="info">{evento.category}</Selo></li>)}
+                {pendenciasDoDia.map((resultado) => <li key={resultado.id} className="flex items-center justify-between gap-3 py-3"><div><p className="text-sm font-semibold">{resultado.title}</p><p className="mt-0.5 text-xs text-muted">{resultado.time} · {resultado.ownerName}</p></div><SeloStatus status="Pendente" /></li>)}
               </ul>
             )}
-          </Card>
+          </Cartao>
         </div>
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold">Eventos de {MONTHS[view.m]} de {view.y}</h2>
-        <DataTable
-          columns={eventColumns}
-          rows={monthEvents}
-          empty={<EmptyState icon="calendar" title="Nenhum evento neste mês">{admin ? "Use “Novo evento” para cadastrar." : "Veja outros meses no calendário."}</EmptyState>}
-          actions={admin ? (e) => (<><IconButton icon="edit" label="Editar" size="sm" onClick={() => setEventForm(e)} /><IconButton icon="trash" label="Excluir" tone="danger" size="sm" onClick={() => removeEvent(e)} /></>) : undefined}
+        <h2 className="mb-3 text-lg font-bold">Eventos de {MESES[visualizacao.m]} de {visualizacao.y}</h2>
+        <TabelaDados
+          columns={colunasEventos}
+          rows={eventosMensais}
+          empty={<EstadoVazio icon="calendar" title="Nenhum evento neste mês">{administrador ? "Use “Novo evento” para cadastrar." : "Veja outros meses no calendário."}</EstadoVazio>}
+          actions={administrador ? (evento) => (<><BotaoIcone icon="edit" label="Editar" size="sm" onClick={() => definirFormularioEvento(evento)} /><BotaoIcone icon="trash" label="Excluir" tone="danger" size="sm" onClick={() => removerEvento(evento)} /></>) : undefined}
         />
       </section>
 
-      <section ref={requestsRef} className="scroll-mt-6">
-        <h2 className="mb-3 text-lg font-bold">{admin ? "Solicitações de reserva" : "Minhas solicitações"}</h2>
-        <DataTable
-          columns={reservationColumns}
-          rows={myReservations}
-          empty={<EmptyState icon="clock" title="Nenhuma solicitação">{admin ? "Quando um departamento ou associado pedir uma data, ela aparece aqui." : "Use “Solicitar reserva” para pedir uma data."}</EmptyState>}
-          actions={(r) => r.status !== "Pendente" ? null : admin ? (<><IconButton icon="check" label="Aprovar" size="sm" onClick={() => approve(r)} /><IconButton icon="close" label="Recusar" tone="danger" size="sm" onClick={() => setRejecting(r)} /></>) : (<IconButton icon="trash" label="Cancelar solicitação" tone="danger" size="sm" onClick={() => cancel(r)} />)}
+      <section ref={referenciaSolicitacoes} className="scroll-mt-6">
+        <h2 className="mb-3 text-lg font-bold">{administrador ? "Solicitações de reserva" : "Minhas solicitações"}</h2>
+        <TabelaDados
+          columns={colunasReservas}
+          rows={minhasReservas}
+          empty={<EstadoVazio icon="clock" title="Nenhuma solicitação">{administrador ? "Quando um departamento ou associado pedir uma data, ela aparece aqui." : "Use “Solicitar reserva” para pedir uma data."}</EstadoVazio>}
+          actions={(resultado) => resultado.status !== "Pendente" ? null : administrador ? (<><BotaoIcone icon="check" label="Aprovar" size="sm" onClick={() => aprovar(resultado)} /><BotaoIcone icon="close" label="Recusar" tone="danger" size="sm" onClick={() => definirRejeitando(resultado)} /></>) : (<BotaoIcone icon="trash" label="Cancelar solicitação" tone="danger" size="sm" onClick={() => cancelar(resultado)} />)}
         />
       </section>
 
-      {eventForm && <EventForm event={eventForm} onClose={() => setEventForm(null)} onSave={(e) => { save("events", e); toast(e.id ? "Evento atualizado" : "Evento criado"); setEventForm(null); setSelected(e.date); setView({ y: fromISO(e.date).getFullYear(), m: fromISO(e.date).getMonth() }); }} />}
-      {reservationForm && (
-        <ReservationForm
-          initialDate={selected >= today ? selected : today}
-          today={today}
-          hasConflict={hasConflict}
-          onClose={() => setReservationForm(false)}
-          onSave={(data) => {
-            save("reservations", { ...data, requester: user.profile.name, role, ownerId: user.ownerId, ownerName, status: "Pendente", createdAt: new Date().toISOString() });
-            notify("admin", "Nova solicitação de reserva", `${ownerName} solicitou ${fmtDate(data.date)} às ${data.time}.`, "agenda");
-            toast("Solicitação enviada para a Diretoria");
-            setReservationForm(false);
+      {formularioEvento && <FormularioEvento event={formularioEvento} onClose={() => definirFormularioEvento(null)} onSave={(evento) => { salvar("events", evento); aviso(evento.id ? "Evento atualizado" : "Evento criado"); definirFormularioEvento(null); definirSelecionado(evento.date); definirVisualizacao({ y: deISO(evento.date).getFullYear(), m: deISO(evento.date).getMonth() }); }} />}
+      {formularioReserva && (
+        <FormularioReserva
+          initialDate={selecionado >= hoje ? selecionado : hoje}
+          today={hoje}
+          hasConflict={temConflito}
+          onClose={() => definirFormularioReserva(false)}
+          onSave={(dados) => {
+            salvar("reservations", { ...dados, requester: usuario.profile.name, role: papel, ownerId: usuario.ownerId, ownerName: nomeResponsavel, status: "Pendente", createdAt: new Date().toISOString() });
+            notificar("admin", "Nova solicitação de reserva", `${nomeResponsavel} solicitou ${formatarData(dados.date)} às ${dados.time}.`, "agenda");
+            aviso("Solicitação enviada para a Diretoria");
+            definirFormularioReserva(false);
           }}
         />
       )}
-      {rejecting && <RejectModal reservation={rejecting} onClose={() => setRejecting(null)} onConfirm={(reason) => reject(rejecting, reason)} />}
+      {rejeitando && <ModalRejeicao reservation={rejeitando} onClose={() => definirRejeitando(null)} onConfirm={(motivo) => rejeitar(rejeitando, motivo)} />}
     </div>
   );
 }

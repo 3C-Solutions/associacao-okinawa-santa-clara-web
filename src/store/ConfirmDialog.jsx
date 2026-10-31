@@ -1,19 +1,19 @@
-import { Button, Modal } from "@/components/ui";
+import { Botao, Modal } from "@/components/ui";
 
-export default function ConfirmDialog({ title = "Confirmar ação", message, confirmLabel = "Excluir", variant = "danger", onConfirm, onClose }) {
+export default function DialogoConfirmacao({ title: titulo = "Confirmar ação", message: mensagem, confirmLabel: rotuloConfirmacao = "Excluir", variant: variante = "danger", onConfirm: aoConfirmar, onClose: aoFechar }) {
   return (
     <Modal
       size="sm"
-      title={title}
-      onClose={onClose}
+      title={titulo}
+      onClose={aoFechar}
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button variant={variant} onClick={() => { onConfirm(); onClose(); }}>{confirmLabel}</Button>
+          <Botao variant="outline" onClick={aoFechar}>Cancelar</Botao>
+          <Botao variant={variante} onClick={() => { aoConfirmar(); aoFechar(); }}>{rotuloConfirmacao}</Botao>
         </>
       }
     >
-      <p className="leading-relaxed text-muted">{message}</p>
+      <p className="leading-relaxed text-muted">{mensagem}</p>
     </Modal>
   );
 }

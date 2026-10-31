@@ -1,1 +1,1 @@
-export const deptNames = (state, ids) => ids.map((id) => state.departments.find((d) => d.id === id)?.name).filter(Boolean);
+export const nomesDepartamentos = (dadosAplicacao, identificadores) => identificadores.map((identificador) => dadosAplicacao.departments.find((dataValor) => dataValor.id === identificador)?.name).filter(Boolean);

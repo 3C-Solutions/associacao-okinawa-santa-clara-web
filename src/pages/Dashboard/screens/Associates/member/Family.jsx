@@ -1,73 +1,73 @@
 import { useState } from "react";
-import { INITIAL_PASSWORD, uid } from "@/lib/data.js";
-import { isFull, peopleOf } from "@/lib/people.js";
-import { useStore, useUser } from "@/store";
-import { Badge, Button, Card, EmptyState, Icon, PageHeader } from "@/components/ui";
-import { deptNames } from "../helpers.js";
-import PersonForm from "./PersonForm.jsx";
+import { SENHA_INICIAL, identificadorUnico } from "@/lib/data.js";
+import { estaCompleto, pessoasDe } from "@/lib/people.js";
+import { usarArmazenamento, usarUsuario } from "@/store";
+import { Selo, Botao, Cartao, EstadoVazio, Icone, CabecalhoPagina } from "@/components/ui";
+import { nomesDepartamentos } from "../helpers.js";
+import FormularioPessoa from "./PersonForm.jsx";
 
 // ---------- Associado (família) ----------
-export default function Family({ role = "member", account }) {
-  const { state, save, removeWhere, removeAccounts, addAccount, setProfile, notify, toast, confirm } = useStore();
-  const user = useUser(account);
-  const readOnly = role === "dependent"; // dependente apenas consulta: quem cadastra a família é o responsável
-  const [editing, setEditing] = useState(null);
-  const associate = user.associate;
-  if (!associate) return <Card><EmptyState icon="person" title="Cadastro não encontrado" /></Card>;
-  const people = peopleOf(associate);
-  const active = state.departments.filter((d) => d.active);
+export default function Familia({ role: papel = "member", account: conta }) {
+  const { state: dadosAplicacao, save: salvar, removeWhere: removerOnde, removeAccounts: removerContas, addAccount: adicionarConta, setProfile: definirPerfil, notify: notificar, toast: aviso, confirm: confirmar } = usarArmazenamento();
+  const usuario = usarUsuario(conta);
+  const somenteLeitura = papel === "dependent"; // dependente apenas consulta: quem cadastra a família é o responsável
+  const [editando, definirEditando] = useState(null);
+  const associado = usuario.associate;
+  if (!associado) return <Cartao><EstadoVazio icon="person" title="Cadastro não encontrado" /></Cartao>;
+  const pessoas = pessoasDe(associado);
+  const ativo = dadosAplicacao.departments.filter((dataValor) => dataValor.active);
 
   // A família não se inscreve diretamente: os departamentos marcados viram SOLICITAÇÕES para o departamento aprovar.
-  const accountKeyOf = (personId) => Object.keys(state.profiles).find((key) => state.profiles[key].personId === personId);
-  const savePerson = (person, requestedIds) => {
-    if (readOnly) return;
-    let createdAccess = false;
-    if (!person.main) {
-      const exists = associate.dependents.some((p) => p.id === person.id);
-      const dep = { id: person.id, name: person.name, relation: person.relation, departmentIds: exists ? associate.dependents.find((p) => p.id === person.id).departmentIds : [] };
-      if (person.email) dep.email = person.email;
-      if (person.phone) dep.phone = person.phone;
-      save("associates", { ...associate, dependents: exists ? associate.dependents.map((p) => (p.id === dep.id ? dep : p)) : [...associate.dependents, dep] });
+  const chaveDaConta = (identificadorPessoa) => Object.keys(dadosAplicacao.profiles).find((chave) => dadosAplicacao.profiles[chave].personId === identificadorPessoa);
+  const salvarPessoa = (pessoa, identificadoresSolicitados) => {
+    if (somenteLeitura) return;
+    let acessoCriado = false;
+    if (!pessoa.main) {
+      const existe = associado.dependents.some((parametro) => parametro.id === pessoa.id);
+      const departamento = { id: pessoa.id, name: pessoa.name, relation: pessoa.relation, departmentIds: existe ? associado.dependents.find((parametro) => parametro.id === pessoa.id).departmentIds : [] };
+      if (pessoa.email) departamento.email = pessoa.email;
+      if (pessoa.phone) departamento.phone = pessoa.phone;
+      salvar("associates", { ...associado, dependents: existe ? associado.dependents.map((parametro) => (parametro.id === departamento.id ? departamento : parametro)) : [...associado.dependents, departamento] });
       // o associado responsável é quem cadastra o dependente (e, com e-mail, o acesso dele ao sistema)
-      const key = accountKeyOf(person.id);
-      const patch = { name: person.name, email: person.email, phone: person.phone || associate.phone };
-      if (key) setProfile(key, patch);
-      else if (person.email) { addAccount(`u-${person.id}`, { role: "dependent", ...patch, associateId: associate.id, personId: person.id, emailNotifications: true }, INITIAL_PASSWORD); createdAccess = true; }
+      const chave = chaveDaConta(pessoa.id);
+      const atualizarParcial = { name: pessoa.name, email: pessoa.email, phone: pessoa.phone || associado.phone };
+      if (chave) definirPerfil(chave, atualizarParcial);
+      else if (pessoa.email) { adicionarConta(`u-${pessoa.id}`, { role: "dependent", ...atualizarParcial, associateId: associado.id, personId: pessoa.id, emailNotifications: true }, SENHA_INICIAL); acessoCriado = true; }
     }
-    requestedIds.forEach((departmentId) => {
-      const department = state.departments.find((d) => d.id === departmentId);
-      save("enrollmentRequests", { departmentId, associateId: associate.id, associateName: associate.name, personId: person.id, personName: person.name, relation: person.main ? "Responsável" : person.relation, status: isFull(state, department) ? "Lista de espera" : "Pendente", createdAt: new Date().toISOString() });
-      notify("department", "Nova solicitação de inscrição", `${person.name} solicitou inscrição em ${department.name}.`, "associates", { departmentId });
+    identificadoresSolicitados.forEach((departmentId) => {
+      const departamento = dadosAplicacao.departments.find((dataValor) => dataValor.id === departmentId);
+      salvar("enrollmentRequests", { departmentId: departmentId, associateId: associado.id, associateName: associado.name, personId: pessoa.id, personName: pessoa.name, relation: pessoa.main ? "Responsável" : pessoa.relation, status: estaCompleto(dadosAplicacao, departamento) ? "Lista de espera" : "Pendente", createdAt: new Date().toISOString() });
+      notificar("department", "Nova solicitação de inscrição", `${pessoa.name} solicitou inscrição em ${departamento.name}.`, "associates", { departmentId: departmentId });
     });
-    toast(createdAccess ? `Dependente cadastrado. Senha inicial de acesso: ${INITIAL_PASSWORD}.` : requestedIds.length ? "Dados salvos e solicitações enviadas" : "Família atualizada");
-    setEditing(null);
+    aviso(acessoCriado ? `Dependente cadastrado. Senha inicial de acesso: ${SENHA_INICIAL}.` : identificadoresSolicitados.length ? "Dados salvos e solicitações enviadas" : "Família atualizada");
+    definirEditando(null);
   };
-  const removePerson = (p) => readOnly ? undefined : confirm({ title: "Remover membro", message: `Remover ${p.name} da sua família? As inscrições e solicitações dele(a) também serão removidas.`, confirmLabel: "Remover", onConfirm: () => { removeAccounts((a) => a.personId === p.id); save("associates", { ...associate, dependents: associate.dependents.filter((d) => d.id !== p.id) }); removeWhere("enrollmentRequests", (r) => r.personId === p.id); toast("Membro removido"); setEditing(null); } });
+  const removerPessoa = (parametro) => somenteLeitura ? undefined : confirmar({ title: "Remover membro", message: `Remover ${parametro.name} da sua família? As inscrições e solicitações dele(a) também serão removidas.`, confirmLabel: "Remover", onConfirm: () => { removerContas((elementoA) => elementoA.personId === parametro.id); salvar("associates", { ...associado, dependents: associado.dependents.filter((dataValor) => dataValor.id !== parametro.id) }); removerOnde("enrollmentRequests", (resultado) => resultado.personId === parametro.id); aviso("Membro removido"); definirEditando(null); } });
 
   return (
     <div>
-      {readOnly ? (
+      {somenteLeitura ? (
         <p className="mb-6 text-sm text-muted">Somente o associado responsável cadastra e edita os membros da família.</p>
       ) : (
-        <PageHeader><Button onClick={() => setEditing({ id: uid(), name: "", relation: "Filho(a)", departmentIds: [], main: false, isNew: true })}><Icon name="plus" size={18} /> Novo membro</Button></PageHeader>
+        <CabecalhoPagina><Botao onClick={() => definirEditando({ id: identificadorUnico(), name: "", relation: "Filho(a)", departmentIds: [], main: false, isNew: true })}><Icone name="plus" size={18} /> Novo membro</Botao></CabecalhoPagina>
       )}
       <div className="grid gap-5 md:grid-cols-2">
-        {people.map((p) => (
-          <Card key={p.id} className="p-5">
+        {pessoas.map((parametro) => (
+          <Cartao key={parametro.id} className="p-5">
             <div className="flex gap-4">
-              <div className="grid size-20 shrink-0 place-items-center rounded-xl bg-brand-soft text-2xl font-bold text-brand">{p.name[0]}</div>
+              <div className="grid size-20 shrink-0 place-items-center rounded-xl bg-brand-soft text-2xl font-bold text-brand">{parametro.name[0]}</div>
               <div className="min-w-0">
-                <Badge tone="info">{p.relation}</Badge>
-                <h2 className="mt-2 text-lg font-bold">{p.name}</h2>
+                <Selo tone="info">{parametro.relation}</Selo>
+                <h2 className="mt-2 text-lg font-bold">{parametro.name}</h2>
                 <p className="mt-1 text-sm text-muted">Departamentos inscritos</p>
-                <p className="text-sm font-semibold">{deptNames(state, p.departmentIds).join(", ") || "Nenhum"}</p>
+                <p className="text-sm font-semibold">{nomesDepartamentos(dadosAplicacao, parametro.departmentIds).join(", ") || "Nenhum"}</p>
               </div>
             </div>
-            {!readOnly && <Button variant="secondary" className="mt-5 w-full" onClick={() => setEditing(p)}>Gerenciar</Button>}
-          </Card>
+            {!somenteLeitura && <Botao variant="secondary" className="mt-5 w-full" onClick={() => definirEditando(parametro)}>Gerenciar</Botao>}
+          </Cartao>
         ))}
       </div>
-      {editing && !readOnly && <PersonForm person={editing} hasAccess={!!accountKeyOf(editing.id)} departments={active} requests={state.enrollmentRequests || []} onClose={() => setEditing(null)} onSave={savePerson} onRemove={!editing.main && !editing.isNew ? () => removePerson(editing) : undefined} />}
+      {editando && !somenteLeitura && <FormularioPessoa person={editando} hasAccess={!!chaveDaConta(editando.id)} departments={ativo} requests={dadosAplicacao.enrollmentRequests || []} onClose={() => definirEditando(null)} onSave={salvarPessoa} onRemove={!editando.main && !editando.isNew ? () => removerPessoa(editando) : undefined} />}
     </div>
   );
 }

@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { StoreProvider } from "@/store";
-import PublicSite from "@/pages/PublicSite/PublicSite.jsx";
-import Login from "@/pages/Login/Login.jsx";
-import Dashboard from "@/pages/Dashboard/Dashboard.jsx";
+import { ProvedorArmazenamento } from "@/store";
+import SitePublico from "@/pages/PublicSite/PublicSite.jsx";
+import Acesso from "@/pages/Login/Login.jsx";
+import Painel from "@/pages/Dashboard/Dashboard.jsx";
 
-export default function App() {
-  const [view, setView] = useState("public");
-  const [account, setAccount] = useState(null);
+export default function Aplicativo() {
+  const [visualizacao, definirVisualizacao] = useState("public");
+  const [conta, definirConta] = useState(null);
   return (
-    <StoreProvider>
-      {view === "public" && <PublicSite onLogin={() => setView("login")} />}
-      {view === "login" && <Login onBack={() => setView("public")} onEnter={(key) => { setAccount(key); setView("dashboard"); }} />}
-      {view === "dashboard" && <Dashboard account={account} onLogout={() => { setAccount(null); setView("login"); }} />}
-    </StoreProvider>
+    <ProvedorArmazenamento>
+      {visualizacao === "public" && <SitePublico onLogin={() => definirVisualizacao("login")} />}
+      {visualizacao === "login" && <Acesso onBack={() => definirVisualizacao("public")} onEnter={(chave) => { definirConta(chave); definirVisualizacao("dashboard"); }} />}
+      {visualizacao === "dashboard" && <Painel account={conta} onLogout={() => { definirConta(null); definirVisualizacao("login"); }} />}
+    </ProvedorArmazenamento>
   );
 }

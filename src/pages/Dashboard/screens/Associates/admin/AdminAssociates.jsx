@@ -1,140 +1,140 @@
 import { useMemo, useState } from "react";
-import { INITIAL_PASSWORD, USER_TYPES, downloadCSV, todayISO, uid } from "@/lib/data.js";
-import { familyLabel, familyOf } from "@/lib/people.js";
-import { useStore } from "@/store";
-import { Badge, Button, DataTable, EmptyState, Icon, IconButton, SearchInput, SelectField } from "@/components/ui";
-import { deptNames } from "../helpers.js";
-import AssociateDetails from "./AssociateDetails.jsx";
-import UserForm from "./UserForm.jsx";
+import { SENHA_INICIAL, TIPOS_USUARIOS, baixarCsv, hojeISO, identificadorUnico } from "@/lib/data.js";
+import { rotuloFamilia, familiaDe } from "@/lib/people.js";
+import { usarArmazenamento } from "@/store";
+import { Selo, Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao } from "@/components/ui";
+import { nomesDepartamentos } from "../helpers.js";
+import DetalhesAssociado from "./AssociateDetails.jsx";
+import FormularioUsuario from "./UserForm.jsx";
 
 // ---------- Diretoria ----------
 // Lista todos os usuários do sistema e cadastra UM usuário por vez, escolhendo o tipo de perfil.
-const ROLE_TONES = { Diretoria: "danger", Departamento: "warning", "Associado responsável": "success", Dependente: "info" };
-const TYPE_ORDER = USER_TYPES.map((t) => t.value);
+const TONS_PAPEIS = { Diretoria: "danger", Departamento: "warning", "Associado responsável": "success", Dependente: "info" };
+const ORDEM_TIPOS = TIPOS_USUARIOS.map((tempo) => tempo.value);
 
-export default function AdminAssociates({ account, navigate }) {
-  const { state, save, remove, removeWhere, addAccount, updateAccounts, removeAccounts, toast, confirm } = useStore();
-  const [q, setQ] = useState("");
-  const [dept, setDept] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [form, setForm] = useState(null); // { user } — user = null cadastra um novo usuário
-  const [viewing, setViewing] = useState(null);
+export default function AssociadosAdmin({ account: conta, navigate: navegar }) {
+  const { state: dadosAplicacao, save: salvar, remove: remover, removeWhere: removerOnde, addAccount: adicionarConta, updateAccounts: atualizarContas, removeAccounts: removerContas, toast: aviso, confirm: confirmar } = usarArmazenamento();
+  const [consulta, definirConsulta] = useState("");
+  const [departamento, definirDepto] = useState("");
+  const [filtroPapel, definirFiltroPapel] = useState("");
+  const [formulario, definirFormulario] = useState(null); // { user } — user = null cadastra um novo usuário
+  const [visualizando, definirVisualizando] = useState(null);
 
-  const users = useMemo(() => {
-    const list = [];
-    Object.entries(state.profiles).forEach(([key, p]) => {
-      if (p.role === "admin") list.push({ id: key, type: "admin", name: p.name, email: p.email, phone: p.phone, departmentIds: [], note: "Diretoria da associação" });
-      if (p.role === "department") list.push({ id: key, type: "department", name: p.name, email: p.email, phone: p.phone, departmentIds: p.departmentId ? [p.departmentId] : [], note: "Responsável pelo departamento" });
+  const usuarios = useMemo(() => {
+    const lista = [];
+    Object.entries(dadosAplicacao.profiles).forEach(([chave, parametro]) => {
+      if (parametro.role === "admin") lista.push({ id: chave, type: "admin", name: parametro.name, email: parametro.email, phone: parametro.phone, departmentIds: [], note: "Diretoria da associação" });
+      if (parametro.role === "department") lista.push({ id: chave, type: "department", name: parametro.name, email: parametro.email, phone: parametro.phone, departmentIds: parametro.departmentId ? [parametro.departmentId] : [], note: "Responsável pelo departamento" });
     });
-    state.associates.forEach((a) => {
-      const family = familyOf(state, a);
-      list.push({ id: a.id, type: "member", name: a.name, email: a.email, phone: a.phone, departmentIds: a.departmentIds, associate: a, family: familyLabel(family), note: `${familyLabel(family)} · ${a.dependents.length} dependente(s)` });
-      a.dependents.forEach((p) => list.push({ id: p.id, type: "dependent", name: p.name, email: p.email || "", phone: p.phone || a.phone, departmentIds: p.departmentIds, associate: a, person: p, family: familyLabel(family), note: `${p.relation} de ${a.name} · ${familyLabel(family)}` }));
+    dadosAplicacao.associates.forEach((elementoA) => {
+      const familia = familiaDe(dadosAplicacao, elementoA);
+      lista.push({ id: elementoA.id, type: "member", name: elementoA.name, email: elementoA.email, phone: elementoA.phone, departmentIds: elementoA.departmentIds, associate: elementoA, family: rotuloFamilia(familia), note: `${rotuloFamilia(familia)} · ${elementoA.dependents.length} dependente(s)` });
+      elementoA.dependents.forEach((parametro) => lista.push({ id: parametro.id, type: "dependent", name: parametro.name, email: parametro.email || "", phone: parametro.phone || elementoA.phone, departmentIds: parametro.departmentIds, associate: elementoA, person: parametro, family: rotuloFamilia(familia), note: `${parametro.relation} de ${elementoA.name} · ${rotuloFamilia(familia)}` }));
     });
-    return list.map((u) => ({ ...u, role: USER_TYPES.find((t) => t.value === u.type).label }));
-  }, [state]);
+    return lista.map((usuarioAtual) => ({ ...usuarioAtual, role: TIPOS_USUARIOS.find((tempo) => tempo.value === usuarioAtual.type).label }));
+  }, [dadosAplicacao]);
 
-  const rows = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    return users
-      .filter((u) => !roleFilter || u.type === roleFilter)
-      .filter((u) => !dept || u.departmentIds.includes(dept))
-      .filter((u) => !term || `${u.name} ${u.email} ${u.phone} ${u.note}`.toLowerCase().includes(term))
-      .sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) || a.name.localeCompare(b.name));
-  }, [users, q, dept, roleFilter]);
+  const linhas = useMemo(() => {
+    const termo = consulta.trim().toLowerCase();
+    return usuarios
+      .filter((usuarioAtual) => !filtroPapel || usuarioAtual.type === filtroPapel)
+      .filter((usuarioAtual) => !departamento || usuarioAtual.departmentIds.includes(departamento))
+      .filter((usuarioAtual) => !termo || `${usuarioAtual.name} ${usuarioAtual.email} ${usuarioAtual.phone} ${usuarioAtual.note}`.toLowerCase().includes(termo))
+      .sort((elementoA, elementoB) => ORDEM_TIPOS.indexOf(elementoA.type) - ORDEM_TIPOS.indexOf(elementoB.type) || elementoA.name.localeCompare(elementoB.name));
+  }, [usuarios, consulta, departamento, filtroPapel]);
 
   // ---------- cadastro (um usuário por vez) ----------
-  const create = (f) => {
-    const base = { name: f.name, email: f.email, phone: f.phone };
-    if (f.type === "admin") {
-      addAccount(`u-${uid()}`, { role: "admin", ...base, emailNotifications: true }, INITIAL_PASSWORD);
+  const criar = (elementoF) => {
+    const base = { name: elementoF.name, email: elementoF.email, phone: elementoF.phone };
+    if (elementoF.type === "admin") {
+      adicionarConta(`u-${identificadorUnico()}`, { role: "admin", ...base, emailNotifications: true }, SENHA_INICIAL);
     } else {
-      const id = `a-${uid()}`;
-      save("associates", { id, familyId: f.familyId, ...base, since: f.since, departmentIds: [], dependents: [] });
-      addAccount(`u-${id}`, { role: "member", ...base, associateId: id, emailNotifications: true }, INITIAL_PASSWORD);
+      const identificador = `a-${identificadorUnico()}`;
+      salvar("associates", { id: identificador, familyId: elementoF.familyId, ...base, since: elementoF.since, departmentIds: [], dependents: [] });
+      adicionarConta(`u-${identificador}`, { role: "member", ...base, associateId: identificador, emailNotifications: true }, SENHA_INICIAL);
     }
-    toast(`${USER_TYPES.find((t) => t.value === f.type).label} cadastrado(a). Senha inicial: ${INITIAL_PASSWORD}.`);
+    aviso(`${TIPOS_USUARIOS.find((tempo) => tempo.value === elementoF.type).label} cadastrado(a). Senha inicial: ${SENHA_INICIAL}.`);
   };
 
-  const update = (f, u) => {
-    const base = { name: f.name, email: f.email, phone: f.phone };
-    if (u.type === "admin" || u.type === "department") {
-      updateAccounts((_, key) => key === u.id, { ...base, ...(u.type === "department" ? { departmentId: f.departmentId } : {}) });
-    } else if (u.type === "member") {
-      save("associates", { ...u.associate, ...base, familyId: f.familyId, since: f.since });
-      updateAccounts((p) => p.role === "member" && p.associateId === u.associate.id, base);
+  const atualizar = (elementoF, usuarioAtual) => {
+    const base = { name: elementoF.name, email: elementoF.email, phone: elementoF.phone };
+    if (usuarioAtual.type === "admin" || usuarioAtual.type === "department") {
+      atualizarContas((ignorado, chave) => chave === usuarioAtual.id, { ...base, ...(usuarioAtual.type === "department" ? { departmentId: elementoF.departmentId } : {}) });
+    } else if (usuarioAtual.type === "member") {
+      salvar("associates", { ...usuarioAtual.associate, ...base, familyId: elementoF.familyId, since: elementoF.since });
+      atualizarContas((parametro) => parametro.role === "member" && parametro.associateId === usuarioAtual.associate.id, base);
     } else {
-      save("associates", { ...u.associate, dependents: u.associate.dependents.map((p) => (p.id === u.id ? { ...p, ...base, relation: f.relation } : p)) });
-      updateAccounts((p) => p.personId === u.id, base);
+      salvar("associates", { ...usuarioAtual.associate, dependents: usuarioAtual.associate.dependents.map((parametro) => (parametro.id === usuarioAtual.id ? { ...parametro, ...base, relation: elementoF.relation } : parametro)) });
+      atualizarContas((parametro) => parametro.personId === usuarioAtual.id, base);
     }
-    toast("Usuário atualizado");
+    aviso("Usuário atualizado");
   };
 
-  const submit = (f) => { if (form.user) update(f, form.user); else create(f); setForm(null); };
+  const enviar = (elementoF) => { if (formulario.user) atualizar(elementoF, formulario.user); else criar(elementoF); definirFormulario(null); };
 
   // ---------- exclusão ----------
-  const del = (u) => {
-    if (u.type === "admin" && Object.values(state.profiles).filter((p) => p.role === "admin").length <= 1) { toast("Mantenha ao menos um usuário da Diretoria.", "error"); return; }
-    const messages = {
-      admin: `Excluir ${u.name}? Ele(a) perderá o acesso à Diretoria.`,
-      department: `Excluir ${u.name}? Ele(a) perderá o acesso ao departamento.`,
-      member: `Excluir ${u.name} e seus ${u.associate?.dependents.length} dependente(s)? Essa ação não pode ser desfeita.`,
-      dependent: `Excluir ${u.name}? As inscrições em departamentos também serão removidas.`,
+  const excluir = (usuarioAtual) => {
+    if (usuarioAtual.type === "admin" && Object.values(dadosAplicacao.profiles).filter((parametro) => parametro.role === "admin").length <= 1) { aviso("Mantenha ao menos um usuário da Diretoria.", "error"); return; }
+    const mensagens = {
+      admin: `Excluir ${usuarioAtual.name}? Ele(a) perderá o acesso à Diretoria.`,
+      department: `Excluir ${usuarioAtual.name}? Ele(a) perderá o acesso ao departamento.`,
+      member: `Excluir ${usuarioAtual.name} e seus ${usuarioAtual.associate?.dependents.length} dependente(s)? Essa ação não pode ser desfeita.`,
+      dependent: `Excluir ${usuarioAtual.name}? As inscrições em departamentos também serão removidas.`,
     };
-    confirm({
+    confirmar({
       title: "Excluir usuário",
-      message: messages[u.type],
+      message: mensagens[usuarioAtual.type],
       onConfirm: () => {
-        if (u.type === "member") remove("associates", u.associate.id);
-        else if (u.type === "dependent") {
-          save("associates", { ...u.associate, dependents: u.associate.dependents.filter((p) => p.id !== u.id) });
-          removeWhere("enrollmentRequests", (r) => r.personId === u.id);
-          removeAccounts((p) => p.personId === u.id);
-        } else removeAccounts((_, key) => key === u.id);
-        toast("Usuário excluído");
+        if (usuarioAtual.type === "member") remover("associates", usuarioAtual.associate.id);
+        else if (usuarioAtual.type === "dependent") {
+          salvar("associates", { ...usuarioAtual.associate, dependents: usuarioAtual.associate.dependents.filter((parametro) => parametro.id !== usuarioAtual.id) });
+          removerOnde("enrollmentRequests", (resultado) => resultado.personId === usuarioAtual.id);
+          removerContas((parametro) => parametro.personId === usuarioAtual.id);
+        } else removerContas((ignorado, chave) => chave === usuarioAtual.id);
+        aviso("Usuário excluído");
       },
     });
   };
 
-  const exportCsv = () => { downloadCSV(`usuarios-${todayISO()}.csv`, ["Nome", "Função", "E-mail", "Telefone", "Família", "Vínculo", "Departamentos"], rows.map((u) => [u.name, u.role, u.email, u.phone, u.family || "", u.note, deptNames(state, u.departmentIds).join(", ")])); toast("Arquivo CSV gerado"); };
+  const exportarCsv = () => { baixarCsv(`usuarios-${hojeISO()}.csv`, ["Nome", "Função", "E-mail", "Telefone", "Família", "Vínculo", "Departamentos"], linhas.map((usuarioAtual) => [usuarioAtual.name, usuarioAtual.role, usuarioAtual.email, usuarioAtual.phone, usuarioAtual.family || "", usuarioAtual.note, nomesDepartamentos(dadosAplicacao, usuarioAtual.departmentIds).join(", ")])); aviso("Arquivo CSV gerado"); };
 
-  const columns = [
-    { key: "name", label: "Nome", render: (u) => <span className="font-semibold">{u.name}</span> },
-    { key: "role", label: "Função", render: (u) => <Badge tone={ROLE_TONES[u.role]}>{u.role}</Badge> },
-    { key: "note", label: "Vínculo", render: (u) => <span className="text-muted">{u.note}</span> },
+  const colunas = [
+    { key: "name", label: "Nome", render: (usuarioAtual) => <span className="font-semibold">{usuarioAtual.name}</span> },
+    { key: "role", label: "Função", render: (usuarioAtual) => <Selo tone={TONS_PAPEIS[usuarioAtual.role]}>{usuarioAtual.role}</Selo> },
+    { key: "note", label: "Vínculo", render: (usuarioAtual) => <span className="text-muted">{usuarioAtual.note}</span> },
     { key: "phone", label: "Telefone" },
-    { key: "departments", label: "Departamentos", render: (u) => <span className="text-muted">{deptNames(state, u.departmentIds).join(", ") || "—"}</span> },
+    { key: "departments", label: "Departamentos", render: (usuarioAtual) => <span className="text-muted">{nomesDepartamentos(dadosAplicacao, usuarioAtual.departmentIds).join(", ") || "—"}</span> },
   ];
-  const counts = (type) => users.filter((u) => u.type === type).length;
+  const quantidades = (tipo) => usuarios.filter((usuarioAtual) => usuarioAtual.type === tipo).length;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row">
-          <SearchInput value={q} onChange={setQ} placeholder="Buscar por nome" className="flex-1 sm:max-w-md" />
-          <SelectField label="" value={roleFilter} onChange={setRoleFilter} placeholder="Todas as funções" options={USER_TYPES.map((t) => ({ value: t.value, label: `${t.label} (${counts(t.value)})` }))} className="sm:w-60 [&>span:first-child]:hidden" />
-          <SelectField label="" value={dept} onChange={setDept} placeholder="Todos os departamentos" options={state.departments.map((d) => ({ value: d.id, label: d.name }))} className="sm:w-60 [&>span:first-child]:hidden" />
+          <EntradaBusca value={consulta} onChange={definirConsulta} placeholder="Buscar por nome" className="flex-1 sm:max-w-md" />
+          <CampoSelecao label="" value={filtroPapel} onChange={definirFiltroPapel} placeholder="Todas as funções" options={TIPOS_USUARIOS.map((tempo) => ({ value: tempo.value, label: `${tempo.label} (${quantidades(tempo.value)})` }))} className="sm:w-60 [&>span:first-child]:hidden" />
+          <CampoSelecao label="" value={departamento} onChange={definirDepto} placeholder="Todos os departamentos" options={dadosAplicacao.departments.map((dataValor) => ({ value: dataValor.id, label: dataValor.name }))} className="sm:w-60 [&>span:first-child]:hidden" />
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCsv} disabled={!rows.length}><Icon name="download" size={18} /> Exportar</Button>
-          <Button onClick={() => setForm({ user: null })}><Icon name="plus" size={18} /> Novo usuário</Button>
+          <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length}><Icone name="download" size={18} /> Exportar</Botao>
+          <Botao onClick={() => definirFormulario({ user: null })}><Icone name="plus" size={18} /> Novo usuário</Botao>
         </div>
       </div>
-      <p className="text-sm text-muted">{rows.length} {rows.length === 1 ? "usuário encontrado" : "usuários encontrados"}.</p>
-      <DataTable
-        columns={columns}
-        rows={rows}
-        empty={<EmptyState icon="person" title="Nenhum usuário encontrado">Ajuste a busca ou os filtros, ou cadastre um novo usuário.</EmptyState>}
-        actions={(u) => (u.id === account
+      <p className="text-sm text-muted">{linhas.length} {linhas.length === 1 ? "usuário encontrado" : "usuários encontrados"}.</p>
+      <TabelaDados
+        columns={colunas}
+        rows={linhas}
+        empty={<EstadoVazio icon="person" title="Nenhum usuário encontrado">Ajuste a busca ou os filtros, ou cadastre um novo usuário.</EstadoVazio>}
+        actions={(usuarioAtual) => (usuarioAtual.id === conta
           ? <span className="text-xs text-muted">Em Configurações</span>
           : (<>
-              {u.associate && <IconButton icon="eye" label={u.type === "member" ? `Ver detalhes de ${u.name}` : `Ver família de ${u.name}`} size="sm" onClick={() => setViewing(u.associate)} />}
-              <IconButton icon="edit" label={`Editar ${u.name}`} size="sm" onClick={() => setForm({ user: u })} />
-              <IconButton icon="trash" label={`Excluir ${u.name}`} tone="danger" size="sm" onClick={() => del(u)} />
+              {usuarioAtual.associate && <BotaoIcone icon="eye" label={usuarioAtual.type === "member" ? `Ver detalhes de ${usuarioAtual.name}` : `Ver família de ${usuarioAtual.name}`} size="sm" onClick={() => definirVisualizando(usuarioAtual.associate)} />}
+              <BotaoIcone icon="edit" label={`Editar ${usuarioAtual.name}`} size="sm" onClick={() => definirFormulario({ user: usuarioAtual })} />
+              <BotaoIcone icon="trash" label={`Excluir ${usuarioAtual.name}`} tone="danger" size="sm" onClick={() => excluir(usuarioAtual)} />
             </>))}
       />
-      {form && <UserForm user={form.user} onClose={() => setForm(null)} onSave={submit} onGoToFamilies={() => { setForm(null); navigate?.("families"); }} />}
-      {viewing && <AssociateDetails associate={state.associates.find((a) => a.id === viewing.id) || viewing} onClose={() => setViewing(null)} onEdit={() => { setForm({ user: users.find((u) => u.id === viewing.id) }); setViewing(null); }} />}
+      {formulario && <FormularioUsuario user={formulario.user} onClose={() => definirFormulario(null)} onSave={enviar} onGoToFamilies={() => { definirFormulario(null); navegar?.("families"); }} />}
+      {visualizando && <DetalhesAssociado associate={dadosAplicacao.associates.find((elementoA) => elementoA.id === visualizando.id) || visualizando} onClose={() => definirVisualizando(null)} onEdit={() => { definirFormulario({ user: usuarios.find((usuarioAtual) => usuarioAtual.id === visualizando.id) }); definirVisualizando(null); }} />}
     </div>
   );
 }

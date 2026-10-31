@@ -1,30 +1,30 @@
 import { useState } from "react";
-import { FINANCE_CATEGORIES } from "@/lib/data.js";
-import { Button, Field, Modal, SelectField } from "@/components/ui";
+import { CATEGORIAS_FINANCEIRAS } from "@/lib/data.js";
+import { Botao, Campo, Modal, CampoSelecao } from "@/components/ui";
 
-export default function TransactionForm({ tx, onClose, onSave }) {
-  const [form, setForm] = useState({ ...tx, amount: tx.amount === "" ? "" : String(tx.amount) });
-  const [errors, setErrors] = useState({});
-  const set = (key) => (value) => { setForm((f) => ({ ...f, [key]: value })); setErrors((e) => ({ ...e, [key]: undefined })); };
-  const submit = () => {
-    const next = {};
-    if (form.description.trim().length < 3) next.description = "Descreva o lançamento.";
-    const amount = Number(String(form.amount).replace(",", "."));
-    if (!amount || amount <= 0) next.amount = "Informe um valor maior que zero.";
-    if (!form.date) next.date = "Informe a data.";
-    setErrors(next);
-    if (Object.keys(next).length) return;
-    onSave({ ...form, description: form.description.trim(), amount: Math.round(amount * 100) / 100 });
+export default function FormularioTransacao({ tx: transacao, onClose: aoFechar, onSave: aoSalvar }) {
+  const [formulario, definirFormulario] = useState({ ...transacao, amount: transacao.amount === "" ? "" : String(transacao.amount) });
+  const [erros, definirErros] = useState({});
+  const definir = (chave) => (valor) => { definirFormulario((elementoF) => ({ ...elementoF, [chave]: valor })); definirErros((evento) => ({ ...evento, [chave]: undefined })); };
+  const enviar = () => {
+    const proximo = {};
+    if (formulario.description.trim().length < 3) proximo.description = "Descreva o lançamento.";
+    const valor = Number(String(formulario.amount).replace(",", "."));
+    if (!valor || valor <= 0) proximo.amount = "Informe um valor maior que zero.";
+    if (!formulario.date) proximo.date = "Informe a data.";
+    definirErros(proximo);
+    if (Object.keys(proximo).length) return;
+    aoSalvar({ ...formulario, description: formulario.description.trim(), amount: Math.round(valor * 100) / 100 });
   };
   return (
-    <Modal title={tx.id ? "Editar lançamento" : "Novo lançamento"} onClose={onClose} footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit}>Salvar</Button></>}>
+    <Modal title={transacao.id ? "Editar lançamento" : "Novo lançamento"} onClose={aoFechar} footer={<><Botao variant="outline" onClick={aoFechar}>Cancelar</Botao><Botao onClick={enviar}>Salvar</Botao></>}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field className="sm:col-span-2" label="Descrição" value={form.description} onChange={set("description")} error={errors.description} required />
-        <SelectField label="Tipo" value={form.type} onChange={set("type")} options={[{ value: "in", label: "Entrada" }, { value: "out", label: "Saída" }]} />
-        <SelectField label="Categoria" value={form.category} onChange={set("category")} options={FINANCE_CATEGORIES} />
-        <Field label="Valor (R$)" type="number" min="0" step="0.01" value={form.amount} onChange={set("amount")} error={errors.amount} required />
-        <Field label="Data" type="date" value={form.date} onChange={set("date")} error={errors.date} required />
-        <SelectField className="sm:col-span-2" label="Status" value={form.status} onChange={set("status")} options={["Pago", "Pendente"]} />
+        <Campo className="sm:col-span-2" label="Descrição" value={formulario.description} onChange={definir("description")} error={erros.description} required />
+        <CampoSelecao label="Tipo" value={formulario.type} onChange={definir("type")} options={[{ value: "in", label: "Entrada" }, { value: "out", label: "Saída" }]} />
+        <CampoSelecao label="Categoria" value={formulario.category} onChange={definir("category")} options={CATEGORIAS_FINANCEIRAS} />
+        <Campo label="Valor (R$)" type="number" min="0" step="0.01" value={formulario.amount} onChange={definir("amount")} error={erros.amount} required />
+        <Campo label="Data" type="date" value={formulario.date} onChange={definir("date")} error={erros.date} required />
+        <CampoSelecao className="sm:col-span-2" label="Status" value={formulario.status} onChange={definir("status")} options={["Pago", "Pendente"]} />
       </div>
     </Modal>
   );

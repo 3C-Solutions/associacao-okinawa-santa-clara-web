@@ -1,64 +1,64 @@
 // Funções auxiliares sobre famílias, associados, dependentes e inscrições em departamentos.
-import { isFamilyRole } from "./data.js";
+import { ehPapelFamiliar } from "./data.js";
 
 // ---------- famílias ----------
-export const associateOfFamily = (state, familyId) => state.associates.find((a) => a.familyId === familyId);
-export const familyOf = (state, associate) => (associate ? (state.families || []).find((f) => f.id === associate.familyId) || null : null);
-export const familyLabel = (f) => (f ? `Família ${f.surname}` : "Sem família");
-export const formatAddress = (f) => {
-  if (!f) return "";
-  const street = [f.address, f.number].filter(Boolean).join(", ");
-  const first = [street, f.complement].filter(Boolean).join(" — ");
-  return [first, f.district, [f.city, f.uf].filter(Boolean).join("/"), f.cep].filter(Boolean).join(" · ");
+export const associadoDaFamilia = (dadosAplicacao, identificadorFamilia) => dadosAplicacao.associates.find((elementoA) => elementoA.familyId === identificadorFamilia);
+export const familiaDe = (dadosAplicacao, associado) => (associado ? (dadosAplicacao.families || []).find((elementoF) => elementoF.id === associado.familyId) || null : null);
+export const rotuloFamilia = (elementoF) => (elementoF ? `Família ${elementoF.surname}` : "Sem família");
+export const formatarEndereco = (elementoF) => {
+  if (!elementoF) return "";
+  const logradouro = [elementoF.address, elementoF.number].filter(Boolean).join(", ");
+  const primeiro = [logradouro, elementoF.complement].filter(Boolean).join(" — ");
+  return [primeiro, elementoF.district, [elementoF.city, elementoF.uf].filter(Boolean).join("/"), elementoF.cep].filter(Boolean).join(" · ");
 };
 
 // destino de uma notificação: o departamento ou a família dona do dado
-export const targetOf = (role, ownerId) => (role === "department" ? { departmentId: ownerId } : isFamilyRole(role) ? { associateId: ownerId } : {});
+export const alvoDe = (papel, identificadorResponsavel) => (papel === "department" ? { departmentId: identificadorResponsavel } : ehPapelFamiliar(papel) ? { associateId: identificadorResponsavel } : {});
 
 // e-mail já usado por alguma conta, associado ou dependente? (ignore = ids do próprio registro, em edição)
-export const emailInUse = (state, email, ignore = []) => {
-  const target = String(email || "").trim().toLowerCase();
-  if (!target) return false;
-  const same = (value, id) => !ignore.includes(id) && String(value || "").trim().toLowerCase() === target;
+export const emailEmUso = (dadosAplicacao, email, ignorar = []) => {
+  const alvo = String(email || "").trim().toLowerCase();
+  if (!alvo) return false;
+  const igual = (valor, identificador) => !ignorar.includes(identificador) && String(valor || "").trim().toLowerCase() === alvo;
   return (
-    Object.entries(state.profiles).some(([key, p]) => same(p.email, key)) ||
-    state.associates.some((a) => same(a.email, a.id) || a.dependents.some((d) => same(d.email, d.id)))
+    Object.entries(dadosAplicacao.profiles).some(([chave, parametro]) => igual(parametro.email, chave)) ||
+    dadosAplicacao.associates.some((elementoA) => igual(elementoA.email, elementoA.id) || elementoA.dependents.some((dataValor) => igual(dataValor.email, dataValor.id)))
   );
 };
 
-export const peopleOf = (a) => [
-  { id: a.id, name: a.name, relation: "Responsável", main: true, departmentIds: a.departmentIds },
-  ...a.dependents.map((p) => ({ ...p, main: false })),
+export const pessoasDe = (elementoA) => [
+  { id: elementoA.id, name: elementoA.name, relation: "Responsável", main: true, departmentIds: elementoA.departmentIds },
+  ...elementoA.dependents.map((parametro) => ({ ...parametro, main: false })),
 ];
 
-export const membersOf = (state, departmentId) =>
-  state.associates.flatMap((a) => peopleOf(a).filter((p) => p.departmentIds.includes(departmentId)).map((p) => ({ ...p, associateId: a.id, associateName: a.name })));
+export const membrosDe = (dadosAplicacao, departmentId) =>
+  dadosAplicacao.associates.flatMap((elementoA) => pessoasDe(elementoA).filter((parametro) => parametro.departmentIds.includes(departmentId)).map((parametro) => ({ ...parametro, associateId: elementoA.id, associateName: elementoA.name })));
 
-export const countInDepartment = (state, departmentId) => membersOf(state, departmentId).length;
+export const quantidadeNoDepartamento = (dadosAplicacao, departmentId) => membrosDe(dadosAplicacao, departmentId).length;
 
-export const withEnrollment = (a, personId, departmentIds) =>
-  personId === a.id ? { ...a, departmentIds } : { ...a, dependents: a.dependents.map((p) => (p.id === personId ? { ...p, departmentIds } : p)) };
+export const comMatricula = (elementoA, identificadorPessoa, departmentIds) =>
+  identificadorPessoa === elementoA.id ? { ...elementoA, departmentIds: departmentIds } : { ...elementoA, dependents: elementoA.dependents.map((parametro) => (parametro.id === identificadorPessoa ? { ...parametro, departmentIds: departmentIds } : parametro)) };
 
 // ---------- limite de vagas e solicitações de inscrição ----------
-export const capacityOf = (department) => Number(department?.capacity) || 0; // 0 = sem limite definido
-export const seatsLeft = (state, department) => (capacityOf(department) ? Math.max(0, capacityOf(department) - countInDepartment(state, department.id)) : Infinity);
-export const isFull = (state, department) => seatsLeft(state, department) === 0;
+export const capacidadeDe = (departamento) => Number(departamento?.capacity) || 0; // 0 = sem limite definido
+export const vagasRestantes = (dadosAplicacao, departamento) => (capacidadeDe(departamento) ? Math.max(0, capacidadeDe(departamento) - quantidadeNoDepartamento(dadosAplicacao, departamento.id)) : Infinity);
+export const estaCompleto = (dadosAplicacao, departamento) => vagasRestantes(dadosAplicacao, departamento) === 0;
 
-export const allPeople = (state) =>
-  state.associates.flatMap((a) => peopleOf(a).map((p) => ({ ...p, associateId: a.id, associateName: a.name })));
+export const todasPessoas = (dadosAplicacao) =>
+  dadosAplicacao.associates.flatMap((elementoA) => pessoasDe(elementoA).map((parametro) => ({ ...parametro, associateId: elementoA.id, associateName: elementoA.name })));
 
-export const requestsOf = (state, departmentId, status) =>
-  (state.enrollmentRequests || []).filter((r) => r.departmentId === departmentId && (!status || r.status === status)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+export const solicitacoesDe = (dadosAplicacao, departmentId, situacao) =>
+  (dadosAplicacao.enrollmentRequests || []).filter((resultado) => resultado.departmentId === departmentId && (!situacao || resultado.status === situacao)).sort((elementoA, elementoB) => elementoA.createdAt.localeCompare(elementoB.createdAt));
 
 // solicitação ainda aberta (pendente ou em lista de espera) de uma pessoa para um departamento
-export const openRequest = (state, departmentId, personId) =>
-  (state.enrollmentRequests || []).find((r) => r.departmentId === departmentId && r.personId === personId && (r.status === "Pendente" || r.status === "Lista de espera"));
+export const abrirSolicitacao = (dadosAplicacao, departmentId, identificadorPessoa) =>
+  (dadosAplicacao.enrollmentRequests || []).find((resultado) => resultado.departmentId === departmentId && resultado.personId === identificadorPessoa && (resultado.status === "Pendente" || resultado.status === "Lista de espera"));
 
-export const enrollPerson = (a, personId, departmentId) => {
-  const p = peopleOf(a).find((x) => x.id === personId);
-  return p && !p.departmentIds.includes(departmentId) ? withEnrollment(a, personId, [...p.departmentIds, departmentId]) : a;
+export const matricularPessoa = (elementoA, identificadorPessoa, departmentId) => {
+  const parametro = pessoasDe(elementoA).find((valorX) => valorX.id === identificadorPessoa);
+  return parametro && !parametro.departmentIds.includes(departmentId) ? comMatricula(elementoA, identificadorPessoa, [...parametro.departmentIds, departmentId]) : elementoA;
 };
-export const unenrollPerson = (a, personId, departmentId) => {
-  const p = peopleOf(a).find((x) => x.id === personId);
-  return p ? withEnrollment(a, personId, p.departmentIds.filter((d) => d !== departmentId)) : a;
+export const desmatricularPessoa = (elementoA, identificadorPessoa, departmentId) => {
+  const parametro = pessoasDe(elementoA).find((valorX) => valorX.id === identificadorPessoa);
+  return parametro ? comMatricula(elementoA, identificadorPessoa, parametro.departmentIds.filter((dataValor) => dataValor !== departmentId)) : elementoA;
 };

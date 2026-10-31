@@ -1,7 +1,7 @@
 // Notícias publicadas que o perfil pode ler
-export function newsFor(state, role) {
-  return state.news
-    .filter((n) => n.status === "Publicado")
-    .filter((n) => role === "admin" || n.audience !== "Diretoria")
-    .sort((a, b) => b.date.localeCompare(a.date));
+export function noticiasPara(dadosAplicacao, papel) {
+  return dadosAplicacao.news
+    .filter((quantidadeN) => quantidadeN.status === "Publicado")
+    .filter((quantidadeN) => papel === "admin" || quantidadeN.audience !== "Diretoria")
+    .sort((elementoA, elementoB) => elementoB.date.localeCompare(elementoA.date));
 }

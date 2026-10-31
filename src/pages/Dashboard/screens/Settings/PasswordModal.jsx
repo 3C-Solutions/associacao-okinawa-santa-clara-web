@@ -1,25 +1,25 @@
 import { useState } from "react";
-import { Button, Field, Modal } from "@/components/ui";
+import { Botao, Campo, Modal } from "@/components/ui";
 
-export default function PasswordModal({ current, onClose, onSave }) {
-  const [form, setForm] = useState({ current: "", next: "", confirm: "" });
-  const [errors, setErrors] = useState({});
-  const set = (key) => (value) => { setForm((f) => ({ ...f, [key]: value })); setErrors((e) => ({ ...e, [key]: undefined })); };
-  const submit = () => {
-    const next = {};
-    if (form.current !== current) next.current = "Senha atual incorreta.";
-    if (form.next.length < 8) next.next = "A nova senha deve ter no mínimo 8 caracteres.";
-    else if (form.next === form.current) next.next = "A nova senha deve ser diferente da atual.";
-    if (form.confirm !== form.next) next.confirm = "As senhas não conferem.";
-    setErrors(next);
-    if (!Object.keys(next).length) onSave(form.next);
+export default function ModalSenha({ current: atual, onClose: aoFechar, onSave: aoSalvar }) {
+  const [formulario, definirFormulario] = useState({ current: "", next: "", confirm: "" });
+  const [erros, definirErros] = useState({});
+  const definir = (chave) => (valor) => { definirFormulario((elementoF) => ({ ...elementoF, [chave]: valor })); definirErros((evento) => ({ ...evento, [chave]: undefined })); };
+  const enviar = () => {
+    const proximo = {};
+    if (formulario.current !== atual) proximo.current = "Senha atual incorreta.";
+    if (formulario.next.length < 8) proximo.next = "A nova senha deve ter no mínimo 8 caracteres.";
+    else if (formulario.next === formulario.current) proximo.next = "A nova senha deve ser diferente da atual.";
+    if (formulario.confirm !== formulario.next) proximo.confirm = "As senhas não conferem.";
+    definirErros(proximo);
+    if (!Object.keys(proximo).length) aoSalvar(formulario.next);
   };
   return (
-    <Modal size="sm" title="Alterar senha" onClose={onClose} footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit}>Salvar senha</Button></>}>
+    <Modal size="sm" title="Alterar senha" onClose={aoFechar} footer={<><Botao variant="outline" onClick={aoFechar}>Cancelar</Botao><Botao onClick={enviar}>Salvar senha</Botao></>}>
       <div className="space-y-4">
-        <Field label="Senha atual" type="password" value={form.current} onChange={set("current")} error={errors.current} />
-        <Field label="Nova senha" type="password" value={form.next} onChange={set("next")} error={errors.next} hint="Mínimo de 8 caracteres." />
-        <Field label="Confirmar nova senha" type="password" value={form.confirm} onChange={set("confirm")} error={errors.confirm} />
+        <Campo label="Senha atual" type="password" value={formulario.current} onChange={definir("current")} error={erros.current} />
+        <Campo label="Nova senha" type="password" value={formulario.next} onChange={definir("next")} error={erros.next} hint="Mínimo de 8 caracteres." />
+        <Campo label="Confirmar nova senha" type="password" value={formulario.confirm} onChange={definir("confirm")} error={erros.confirm} />
       </div>
     </Modal>
   );

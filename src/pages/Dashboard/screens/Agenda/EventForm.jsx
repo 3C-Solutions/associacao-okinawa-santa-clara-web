@@ -1,27 +1,27 @@
 import { useState } from "react";
-import { EVENT_CATEGORIES } from "@/lib/data.js";
-import { Button, Field, Modal, SelectField } from "@/components/ui";
+import { CATEGORIAS_EVENTOS } from "@/lib/data.js";
+import { Botao, Campo, Modal, CampoSelecao } from "@/components/ui";
 
-export default function EventForm({ event, onClose, onSave }) {
-  const [form, setForm] = useState(event);
-  const [errors, setErrors] = useState({});
-  const set = (key) => (value) => { setForm((f) => ({ ...f, [key]: value })); setErrors((e) => ({ ...e, [key]: undefined })); };
-  const submit = () => {
-    const next = {};
-    if (form.title.trim().length < 3) next.title = "Informe o nome do evento.";
-    if (!form.date) next.date = "Informe a data.";
-    if (!form.time) next.time = "Informe o horário.";
-    setErrors(next);
-    if (!Object.keys(next).length) onSave({ ...form, title: form.title.trim() });
+export default function FormularioEvento({ event: evento, onClose: aoFechar, onSave: aoSalvar }) {
+  const [formulario, definirFormulario] = useState(evento);
+  const [erros, definirErros] = useState({});
+  const definir = (chave) => (valor) => { definirFormulario((elementoF) => ({ ...elementoF, [chave]: valor })); definirErros((evento) => ({ ...evento, [chave]: undefined })); };
+  const enviar = () => {
+    const proximo = {};
+    if (formulario.title.trim().length < 3) proximo.title = "Informe o nome do evento.";
+    if (!formulario.date) proximo.date = "Informe a data.";
+    if (!formulario.time) proximo.time = "Informe o horário.";
+    definirErros(proximo);
+    if (!Object.keys(proximo).length) aoSalvar({ ...formulario, title: formulario.title.trim() });
   };
   return (
-    <Modal title={event.id ? "Editar evento" : "Novo evento"} onClose={onClose} footer={<><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit}>Salvar</Button></>}>
+    <Modal title={evento.id ? "Editar evento" : "Novo evento"} onClose={aoFechar} footer={<><Botao variant="outline" onClick={aoFechar}>Cancelar</Botao><Botao onClick={enviar}>Salvar</Botao></>}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field className="sm:col-span-2" label="Nome do evento" value={form.title} onChange={set("title")} error={errors.title} required />
-        <Field label="Data" type="date" value={form.date} onChange={set("date")} error={errors.date} required />
-        <Field label="Horário" type="time" value={form.time} onChange={set("time")} error={errors.time} required />
-        <SelectField label="Categoria" value={form.category} onChange={set("category")} options={EVENT_CATEGORIES} />
-        <Field label="Responsável" value={form.owner} onChange={set("owner")} />
+        <Campo className="sm:col-span-2" label="Nome do evento" value={formulario.title} onChange={definir("title")} error={erros.title} required />
+        <Campo label="Data" type="date" value={formulario.date} onChange={definir("date")} error={erros.date} required />
+        <Campo label="Horário" type="time" value={formulario.time} onChange={definir("time")} error={erros.time} required />
+        <CampoSelecao label="Categoria" value={formulario.category} onChange={definir("category")} options={CATEGORIAS_EVENTOS} />
+        <Campo label="Responsável" value={formulario.owner} onChange={definir("owner")} />
       </div>
     </Modal>
   );

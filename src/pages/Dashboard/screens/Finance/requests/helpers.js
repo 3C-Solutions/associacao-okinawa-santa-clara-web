@@ -1,11 +1,11 @@
-export const parseAmount = (v) => Math.round(Number(String(v).replace(",", ".")) * 100) / 100;
+export const interpretarValor = (valorAuxiliar) => Math.round(Number(String(valorAuxiliar).replace(",", ".")) * 100) / 100;
 
 // ---------- Tabela de pagamentos / reembolsos (diretoria verifica; os demais acompanham) ----------
-export const withType = (payments, refunds) => [
-  ...payments.map((p) => ({ ...p, type: "payment", title: p.kind === "mensalidade" ? "Mensalidade" : "Anuidade" })),
-  ...refunds.map((r) => ({ ...r, type: "refund", title: "Reembolso" })),
-].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+export const comTipo = (pagamentos, reembolsos) => [
+  ...pagamentos.map((parametro) => ({ ...parametro, type: "payment", title: parametro.kind === "mensalidade" ? "Mensalidade" : "Anuidade" })),
+  ...reembolsos.map((resultado) => ({ ...resultado, type: "refund", title: "Reembolso" })),
+].sort((elementoA, elementoB) => elementoB.createdAt.localeCompare(elementoA.createdAt));
 
-export const clean = ({ type, title, ...rest }) => rest; // remove campos só de exibição
+export const limpar = ({ type: tipo, title: titulo, ...restante }) => restante; // remove campos só de exibição
 
-export const isOpen = (r) => r.status === "Em verificação" || r.status === "Em análise";
+export const estaAberto = (resultado) => resultado.status === "Em verificação" || resultado.status === "Em análise";

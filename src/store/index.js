@@ -1,2 +1,2 @@
-export { StoreProvider, useStore } from "./StoreProvider.jsx";
-export { useUser } from "./useUser.js";
+export { ProvedorArmazenamento, usarArmazenamento } from "./StoreProvider.jsx";
+export { usarUsuario } from "./useUser.js";
