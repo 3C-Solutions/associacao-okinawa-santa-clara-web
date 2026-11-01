@@ -31,7 +31,7 @@ export const navegacaoPorPapel = {
     { id: "departments", label: "Departamentos", icon: "groups" },
     {
       id: "users-group",
-      label: "Usuários",
+      label: "Cadastros",
       icon: "person",
       children: [
         { id: "families", label: "Famílias", icon: "groups" },
@@ -112,6 +112,11 @@ export const identificadorUnico = () => (globalThis.crypto?.randomUUID ? globalT
 const preencher = (quantidadeN) => String(quantidadeN).padStart(2, "0");
 export const paraISO = (dataValor) => `${dataValor.getFullYear()}-${preencher(dataValor.getMonth() + 1)}-${preencher(dataValor.getDate())}`;
 export const hojeISO = () => paraISO(new Date());
+export const ehDataPassada = (valor) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor || "")) return false;
+  const data = new Date(`${valor}T00:00:00`);
+  return !Number.isNaN(data.getTime()) && paraISO(data) === valor && valor < hojeISO();
+};
 export const deISO = (iso) => {
   const [valorY, mes, dataValor] = iso.split("-").map(Number);
   return new Date(valorY, mes - 1, dataValor);

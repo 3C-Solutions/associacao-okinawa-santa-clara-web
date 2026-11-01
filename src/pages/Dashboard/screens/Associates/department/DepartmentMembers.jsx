@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { baixarCsv, formatarData } from "@/lib/data.js";
-import { capacidadeDe, matricularPessoa, estaCompleto, membrosDe, abrirSolicitacao, solicitacoesDe, desmatricularPessoa } from "@/lib/people.js";
+import { capacidadeDe, matricularPessoa, estaCompleto, membrosDe, abrirSolicitacao, solicitacoesDe, desmatricularPessoa, formatarDataCadastro } from "@/lib/people.js";
 import { usarArmazenamento, usarUsuario } from "@/store";
 import { Botao, Cartao, TabelaDados, EstadoVazio, Icone, BotaoIcone, CabecalhoPagina, EntradaBusca, SeloStatus, Abas } from "@/components/ui";
 import ModalAdicionarMembro from "./AddMemberModal.jsx";
@@ -23,7 +23,10 @@ export default function MembrosDepartamento({ account: conta }) {
   const limite = capacidadeDe(departamento);
   const completo = estaCompleto(dadosAplicacao, departamento);
   const telefoneDe = (identificador) => dadosAplicacao.associates.find((elementoA) => elementoA.id === identificador)?.phone || "";
-  const desde = (identificador) => dadosAplicacao.associates.find((elementoA) => elementoA.id === identificador)?.since || "";
+  const dataCadastroDe = (membro) => {
+    const associado = dadosAplicacao.associates.find((elementoA) => elementoA.id === membro.associateId);
+    return formatarDataCadastro(membro.main ? associado : associado?.dependents.find((pessoa) => pessoa.id === membro.id));
+  };
   const correspondencias = (resultado) => `${resultado.personName} ${resultado.associateName}`.toLowerCase().includes(consulta.trim().toLowerCase());
 
   const notificarMembro = (identificadorAssociado, titulo, detalhe) => notificar("member", titulo, detalhe, "department", { associateId: identificadorAssociado });
@@ -62,7 +65,7 @@ export default function MembrosDepartamento({ account: conta }) {
     { key: "name", label: "Inscrito", render: (mes) => <span className="font-semibold">{mes.name}</span> },
     { key: "relation", label: "Vínculo", render: (mes) => (mes.main ? "Responsável" : `${mes.relation} de ${mes.associateName}`) },
     { key: "phone", label: "Telefone", render: (mes) => telefoneDe(mes.associateId) },
-    { key: "since", label: "Associado desde", render: (mes) => formatarData(desde(mes.associateId)) },
+    { key: "dataCriacao", label: "Data de cadastro", render: dataCadastroDe },
   ];
   const colunasSolicitacoes = [
     { key: "personName", label: "Solicitante", render: (resultado) => <span className="font-semibold">{resultado.personName}</span> },

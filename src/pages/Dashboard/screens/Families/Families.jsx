@@ -3,9 +3,7 @@ import { associadoDaFamilia, rotuloFamilia, formatarEndereco } from "@/lib/peopl
 import { usarArmazenamento } from "@/store";
 import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca } from "@/components/ui";
 import DetalhesFamilia from "./FamilyDetails.jsx";
-import FormularioFamilia from "./FamilyForm.jsx";
-
-const NOVA_FAMILIA = { surname: "", address: "", number: "", complement: "", district: "", city: "", uf: "", cep: "" };
+import FormularioFamilia, { NOVA_FAMILIA } from "./FamilyForm.jsx";
 
 // ---------- Diretoria ----------
 // Primeiro passo do cadastro: a família (sobrenome + endereço). O associado responsável só pode ser cadastrado depois, escolhendo uma família.
@@ -28,6 +26,7 @@ export default function Familias() {
 
   const excluir = (elementoF) => {
     if (elementoF.members > 0) { aviso("Esta família ainda tem membros. Exclua o associado responsável antes de excluir a família.", "error"); return; }
+    if (Object.values(dadosAplicacao.profiles).some((perfil) => perfil.familyId === elementoF.id)) { aviso("Esta família está vinculada a um usuário. Altere o vínculo antes de excluí-la.", "error"); return; }
     confirmar({ title: "Excluir família", message: `Excluir a ${elementoF.label}? Essa ação não pode ser desfeita.`, onConfirm: () => { remover("families", elementoF.id); aviso("Família excluída"); } });
   };
 

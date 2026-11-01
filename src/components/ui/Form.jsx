@@ -14,20 +14,20 @@ function EstruturaCampo({ label: rotulo, error: erro, hint: dica, required: obri
   );
 }
 
-export function Campo({ label: rotulo, value: valor, onChange: aoAlterar, type: tipo = "text", placeholder: textoExemplo, error: erro, hint: dica, required: obrigatorio, readOnly: somenteLeitura = false, disabled: desabilitado = false, className: nomeClasse = "", min: minimo, max: maximo, step: etapa, suffix: sufixo }) {
+export function Campo({ label: rotulo, value: valor, onChange: aoAlterar, type: tipo = "text", placeholder: textoExemplo, error: erro, hint: dica, required: obrigatorio, readOnly: somenteLeitura = false, disabled: desabilitado = false, className: nomeClasse = "", min: minimo, max: maximo, maxLength: tamanhoMaximo, step: etapa, suffix: sufixo }) {
   return (
     <EstruturaCampo label={rotulo} error={erro} hint={dica} required={obrigatorio} className={nomeClasse}>
       <span className={`${baseCaixa(erro)} ${somenteLeitura ? "bg-canvas" : ""}`}>
-        <input type={tipo} value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} placeholder={textoExemplo} readOnly={somenteLeitura} disabled={desabilitado} min={minimo} max={maximo} step={etapa} className={baseEntrada} />
+        <input type={tipo} value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} placeholder={textoExemplo} readOnly={somenteLeitura} disabled={desabilitado} min={minimo} max={maximo} maxLength={tamanhoMaximo} step={etapa} className={baseEntrada} />
         {sufixo}
       </span>
     </EstruturaCampo>
   );
 }
 
-export function CampoSelecao({ label: rotulo, value: valor, onChange: aoAlterar, options: opcoes, error: erro, required: obrigatorio, className: nomeClasse = "", placeholder: textoExemplo }) {
+export function CampoSelecao({ label: rotulo, value: valor, onChange: aoAlterar, options: opcoes, error: erro, hint: dica, required: obrigatorio, className: nomeClasse = "", placeholder: textoExemplo }) {
   return (
-    <EstruturaCampo label={rotulo} error={erro} required={obrigatorio} className={nomeClasse}>
+    <EstruturaCampo label={rotulo} error={erro} hint={dica} required={obrigatorio} className={nomeClasse}>
       <span className={baseCaixa(erro)}>
         <select value={valor ?? ""} onChange={(evento) => aoAlterar(evento.target.value)} className={`${baseEntrada} bg-white py-2`}>
           {textoExemplo && <option value="">{textoExemplo}</option>}

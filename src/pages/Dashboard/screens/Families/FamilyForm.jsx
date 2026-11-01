@@ -2,7 +2,9 @@ import { useState } from "react";
 import { mascararCep } from "@/lib/data.js";
 import { Botao, Campo, Modal } from "@/components/ui";
 
-export default function FormularioFamilia({ family: familia, onClose: aoFechar, onSave: aoSalvar }) {
+export const NOVA_FAMILIA = { surname: "", address: "", number: "", complement: "", district: "", city: "", uf: "", cep: "" };
+
+export default function FormularioFamilia({ family: familia = NOVA_FAMILIA, onClose: aoFechar, onSave: aoSalvar, hint: dica = "Depois de cadastrar a família, cadastre o associado responsável em Usuários e selecione esta família." }) {
   const [formulario, definirFormulario] = useState(familia);
   const [erros, definirErros] = useState({});
   const definir = (chave) => (valor) => {
@@ -33,7 +35,7 @@ export default function FormularioFamilia({ family: familia, onClose: aoFechar, 
         <Campo label="UF" value={formulario.uf} onChange={definir("uf")} error={erros.uf} placeholder="SP" />
         <Campo label="CEP" value={formulario.cep} onChange={definir("cep")} error={erros.cep} placeholder="00000-000" />
       </div>
-      <p className="mt-5 rounded-lg bg-brand-soft px-4 py-3 text-xs text-brand">Depois de cadastrar a família, cadastre o associado responsável em Usuários e selecione esta família.</p>
+      <p className="mt-5 rounded-lg bg-brand-soft px-4 py-3 text-xs text-brand">{dica}</p>
     </Modal>
   );
 }
