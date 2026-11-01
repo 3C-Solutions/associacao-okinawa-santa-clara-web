@@ -10,7 +10,7 @@ export default function Configuracoes({ role: papel, account: conta }) {
   const { state: dadosAplicacao, save: salvar, setProfile: definirPerfil, setPassword: definirSenhaConta, reset: redefinir, toast: aviso, confirm: confirmar } = usarArmazenamento();
   const usuario = usarUsuario(conta);
   const [editando, definirEditando] = useState(false);
-  // o endereço do associado é o da sua família (cadastrado em Usuários › Famílias)
+  // o endereço do associado é o da sua família (cadastrado em Cadastros › Famílias)
   const enderecoDe = () => (papel === "member" && usuario.family ? CHAVES_ENDERECOS.reduce((acumulador, chave) => ({ ...acumulador, [chave]: usuario.family[chave] || "" }), {}) : {});
   const formularioInicial = () => ({ ...usuario.profile, ...enderecoDe() });
   const [formulario, definirFormulario] = useState(formularioInicial);

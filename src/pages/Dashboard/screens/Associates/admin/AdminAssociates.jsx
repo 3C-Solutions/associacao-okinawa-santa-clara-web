@@ -12,7 +12,7 @@ import FormularioUsuario from "./UserForm.jsx";
 const TONS_PAPEIS = { Diretoria: "danger", Departamento: "warning", "Associado responsável": "success", Dependente: "info" };
 const ORDEM_TIPOS = TIPOS_USUARIOS.map((tempo) => tempo.value);
 
-export default function AssociadosAdmin({ account: conta, navigate: navegar }) {
+export default function AssociadosAdmin({ account: conta }) {
   const { state: dadosAplicacao, save: salvar, remove: remover, removeWhere: removerOnde, addAccount: adicionarConta, updateAccounts: atualizarContas, removeAccounts: removerContas, toast: aviso, confirm: confirmar } = usarArmazenamento();
   const [consulta, definirConsulta] = useState("");
   const [departamento, definirDepto] = useState("");
@@ -23,15 +23,19 @@ export default function AssociadosAdmin({ account: conta, navigate: navegar }) {
   const usuarios = useMemo(() => {
     const lista = [];
     Object.entries(dadosAplicacao.profiles).forEach(([chave, parametro]) => {
-      if (parametro.role === "admin") lista.push({ id: chave, type: "admin", name: parametro.name, email: parametro.email, phone: parametro.phone, departmentIds: [], note: "Diretoria da associação" });
-      if (parametro.role === "department") lista.push({ id: chave, type: "department", name: parametro.name, email: parametro.email, phone: parametro.phone, departmentIds: parametro.departmentId ? [parametro.departmentId] : [], note: "Responsável pelo departamento" });
+      const dadosCadastro = { birthDate: parametro.birthDate || "", familyId: parametro.familyId || "", dataCriacao: parametro.dataCriacao || parametro.createdAt };
+      if (parametro.role === "admin") lista.push({ id: chave, type: "admin", name: parametro.name, email: parametro.email, phone: parametro.phone, ...dadosCadastro, departmentIds: [], note: "Diretoria da associação" });
+      if (parametro.role === "department") lista.push({ id: chave, type: "department", name: parametro.name, email: parametro.email, phone: parametro.phone, ...dadosCadastro, departmentIds: parametro.departmentId ? [parametro.departmentId] : [], note: "Responsável pelo departamento" });
     });
     dadosAplicacao.associates.forEach((elementoA) => {
       const familia = familiaDe(dadosAplicacao, elementoA);
-      lista.push({ id: elementoA.id, type: "member", name: elementoA.name, email: elementoA.email, phone: elementoA.phone, departmentIds: elementoA.departmentIds, associate: elementoA, family: rotuloFamilia(familia), note: `${rotuloFamilia(familia)} · ${elementoA.dependents.length} dependente(s)` });
-      elementoA.dependents.forEach((parametro) => lista.push({ id: parametro.id, type: "dependent", name: parametro.name, email: parametro.email || "", phone: parametro.phone || elementoA.phone, departmentIds: parametro.departmentIds, associate: elementoA, person: parametro, family: rotuloFamilia(familia), note: `${parametro.relation} de ${elementoA.name} · ${rotuloFamilia(familia)}` }));
+      lista.push({ id: elementoA.id, type: "member", name: elementoA.name, email: elementoA.email, phone: elementoA.phone, birthDate: elementoA.birthDate || "", departmentIds: elementoA.departmentIds, associate: elementoA, family: rotuloFamilia(familia), note: `${rotuloFamilia(familia)} · ${elementoA.dependents.length} dependente(s)` });
+      elementoA.dependents.forEach((parametro) => lista.push({ id: parametro.id, type: "dependent", name: parametro.name, email: parametro.email || "", phone: parametro.phone || elementoA.phone, birthDate: parametro.birthDate || "", departmentIds: parametro.departmentIds, associate: elementoA, person: parametro, family: rotuloFamilia(familia), note: `${parametro.relation} de ${elementoA.name} · ${rotuloFamilia(familia)}` }));
     });
-    return lista.map((usuarioAtual) => ({ ...usuarioAtual, role: TIPOS_USUARIOS.find((tempo) => tempo.value === usuarioAtual.type).label }));
+    return lista.map((usuarioAtual) => {
+      const pessoa = usuarioAtual.type === "dependent" ? usuarioAtual.person : usuarioAtual.associate;
+      return { ...usuarioAtual, dataCriacao: usuarioAtual.dataCriacao || pessoa?.dataCriacao || pessoa?.createdAt, role: TIPOS_USUARIOS.find((tempo) => tempo.value === usuarioAtual.type).label };
+    });
   }, [dadosAplicacao]);
 
   const linhas = useMemo(() => {
@@ -45,23 +49,23 @@ export default function AssociadosAdmin({ account: conta, navigate: navegar }) {
 
   // ---------- cadastro (um usuário por vez) ----------
   const criar = (elementoF) => {
-    const base = { name: elementoF.name, email: elementoF.email, phone: elementoF.phone };
+    const base = { name: elementoF.name, email: elementoF.email, phone: elementoF.phone, birthDate: elementoF.birthDate };
     if (elementoF.type === "admin") {
-      adicionarConta(`u-${identificadorUnico()}`, { role: "admin", ...base, emailNotifications: true }, SENHA_INICIAL);
+      adicionarConta(`u-${identificadorUnico()}`, { role: "admin", ...base, familyId: elementoF.familyId, emailNotifications: true }, SENHA_INICIAL);
     } else {
       const identificador = `a-${identificadorUnico()}`;
-      salvar("associates", { id: identificador, familyId: elementoF.familyId, ...base, since: elementoF.since, departmentIds: [], dependents: [] });
+      salvar("associates", { id: identificador, familyId: elementoF.familyId, ...base, departmentIds: [], dependents: [] });
       adicionarConta(`u-${identificador}`, { role: "member", ...base, associateId: identificador, emailNotifications: true }, SENHA_INICIAL);
     }
     aviso(`${TIPOS_USUARIOS.find((tempo) => tempo.value === elementoF.type).label} cadastrado(a). Senha inicial: ${SENHA_INICIAL}.`);
   };
 
   const atualizar = (elementoF, usuarioAtual) => {
-    const base = { name: elementoF.name, email: elementoF.email, phone: elementoF.phone };
+    const base = { name: elementoF.name, email: elementoF.email, phone: elementoF.phone, birthDate: elementoF.birthDate };
     if (usuarioAtual.type === "admin" || usuarioAtual.type === "department") {
-      atualizarContas((ignorado, chave) => chave === usuarioAtual.id, { ...base, ...(usuarioAtual.type === "department" ? { departmentId: elementoF.departmentId } : {}) });
+      atualizarContas((ignorado, chave) => chave === usuarioAtual.id, { ...base, familyId: elementoF.familyId, ...(usuarioAtual.type === "department" ? { departmentId: elementoF.departmentId } : {}) });
     } else if (usuarioAtual.type === "member") {
-      salvar("associates", { ...usuarioAtual.associate, ...base, familyId: elementoF.familyId, since: elementoF.since });
+      salvar("associates", { ...usuarioAtual.associate, ...base, familyId: elementoF.familyId });
       atualizarContas((parametro) => parametro.role === "member" && parametro.associateId === usuarioAtual.associate.id, base);
     } else {
       salvar("associates", { ...usuarioAtual.associate, dependents: usuarioAtual.associate.dependents.map((parametro) => (parametro.id === usuarioAtual.id ? { ...parametro, ...base, relation: elementoF.relation } : parametro)) });
@@ -133,7 +137,7 @@ export default function AssociadosAdmin({ account: conta, navigate: navegar }) {
               <BotaoIcone icon="trash" label={`Excluir ${usuarioAtual.name}`} tone="danger" size="sm" onClick={() => excluir(usuarioAtual)} />
             </>))}
       />
-      {formulario && <FormularioUsuario user={formulario.user} onClose={() => definirFormulario(null)} onSave={enviar} onGoToFamilies={() => { definirFormulario(null); navegar?.("families"); }} />}
+      {formulario && <FormularioUsuario user={formulario.user} onClose={() => definirFormulario(null)} onSave={enviar} />}
       {visualizando && <DetalhesAssociado associate={dadosAplicacao.associates.find((elementoA) => elementoA.id === visualizando.id) || visualizando} onClose={() => definirVisualizando(null)} onEdit={() => { definirFormulario({ user: usuarios.find((usuarioAtual) => usuarioAtual.id === visualizando.id) }); definirVisualizando(null); }} />}
     </div>
   );

@@ -1,5 +1,14 @@
 // Funções auxiliares sobre famílias, associados, dependentes e inscrições em departamentos.
-import { ehPapelFamiliar } from "./data.js";
+import { ehPapelFamiliar, formatarData } from "./data.js";
+
+// A data de criação vem do cadastro, sem usar a antiga data de associação (since).
+export const formatarDataCadastro = (pessoa) => {
+  const valor = pessoa?.dataCriacao || pessoa?.createdAt;
+  if (typeof valor !== "string") return "Não informada";
+  const data = valor.split(/[T ]/)[0];
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(data)) return data;
+  return /^\d{4}-\d{2}-\d{2}$/.test(data) ? formatarData(data) : "Não informada";
+};
 
 // ---------- famílias ----------
 export const associadoDaFamilia = (dadosAplicacao, identificadorFamilia) => dadosAplicacao.associates.find((elementoA) => elementoA.familyId === identificadorFamilia);

@@ -1,5 +1,4 @@
-import { formatarData } from "@/lib/data.js";
-import { rotuloFamilia, familiaDe, formatarEndereco, pessoasDe } from "@/lib/people.js";
+import { rotuloFamilia, familiaDe, formatarEndereco, pessoasDe, formatarDataCadastro } from "@/lib/people.js";
 import { usarArmazenamento } from "@/store";
 import { Selo, Botao, Icone, Modal } from "@/components/ui";
 import { nomesDepartamentos } from "../helpers.js";
@@ -14,7 +13,7 @@ export default function DetalhesAssociado({ associate: associado, onClose: aoFec
         <div><dt className="text-muted">E-mail</dt><dd className="font-semibold">{associado.email}</dd></div>
         <div><dt className="text-muted">Telefone</dt><dd className="font-semibold">{associado.phone}</dd></div>
         <div className="sm:col-span-2"><dt className="text-muted">Família</dt><dd className="font-semibold">{rotuloFamilia(familia)}{familia ? ` — ${formatarEndereco(familia)}` : ""}</dd></div>
-        <div><dt className="text-muted">Associado desde</dt><dd className="font-semibold">{formatarData(associado.since)}</dd></div>
+        <div><dt className="text-muted">Data de cadastro</dt><dd className="font-semibold">{formatarDataCadastro(associado)}</dd></div>
       </dl>
       <h3 className="mb-2 mt-6 font-bold">Família e inscrições</h3>
       <ul className="divide-y divide-divider rounded-lg border border-divider text-sm">
