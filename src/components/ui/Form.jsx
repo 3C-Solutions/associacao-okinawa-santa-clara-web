@@ -14,11 +14,11 @@ function EstruturaCampo({ label: rotulo, error: erro, hint: dica, required: obri
   );
 }
 
-export function Campo({ label: rotulo, value: valor, onChange: aoAlterar, type: tipo = "text", placeholder: textoExemplo, error: erro, hint: dica, required: obrigatorio, readOnly: somenteLeitura = false, disabled: desabilitado = false, className: nomeClasse = "", min: minimo, max: maximo, maxLength: tamanhoMaximo, step: etapa, suffix: sufixo }) {
+export function Campo({ label: rotulo, value: valor, onChange: aoAlterar, type: tipo = "text", placeholder: textoExemplo, error: erro, hint: dica, required: obrigatorio, readOnly: somenteLeitura = false, disabled: desabilitado = false, className: nomeClasse = "", min: minimo, max: maximo, maxLength: tamanhoMaximo, step: etapa, suffix: sufixo, autoComplete }) {
   return (
     <EstruturaCampo label={rotulo} error={erro} hint={dica} required={obrigatorio} className={nomeClasse}>
       <span className={`${baseCaixa(erro)} ${somenteLeitura ? "bg-canvas" : ""}`}>
-        <input type={tipo} value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} placeholder={textoExemplo} readOnly={somenteLeitura} disabled={desabilitado} min={minimo} max={maximo} maxLength={tamanhoMaximo} step={etapa} className={baseEntrada} />
+        <input type={tipo} value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} placeholder={textoExemplo} readOnly={somenteLeitura} disabled={desabilitado} min={minimo} max={maximo} maxLength={tamanhoMaximo} step={etapa} autoComplete={autoComplete} aria-invalid={erro ? true : undefined} className={baseEntrada} />
         {sufixo}
       </span>
     </EstruturaCampo>
