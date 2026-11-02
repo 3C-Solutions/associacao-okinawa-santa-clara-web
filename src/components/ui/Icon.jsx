@@ -5,6 +5,7 @@ export function Icone({ name: nome, size: tamanho = 20 }) {
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></>,
     groups: <><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" /><path d="M3 20c0-4 2-7 6-7s6 3 6 7M15 14c3 0 5 2 5 5" /></>,
     person: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-5 3-8 8-8s8 3 8 8" /></>,
+    personSettings: <><circle cx="8" cy="7" r="3.5" /><path d="M2 21v-2a6 6 0 0 1 9-5.2" /><g transform="translate(10.4 10.4) scale(.55)" strokeWidth="3"><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8 8 0 0 0 15 6l-.3-2.6h-4L10.4 6A8 8 0 0 0 9 7L6.6 6.1l-2 3.4L6.8 11a7 7 0 0 0 0 2L4.6 14.5l2 3.4L9 17a8 8 0 0 0 1.4 1l.3 2.6h4L15 18a8 8 0 0 0 1.4-1l2.4.9 2-3.4-2-1.5a7 7 0 0 0 .2-1Z" /></g></>,
     news: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 8h5M7 12h10M7 16h10M15 8h2" /></>,
     settings: <><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1A8 8 0 0 0 15 6l-.3-2.6h-4L10.4 6A8 8 0 0 0 9 7L6.6 6.1l-2 3.4L6.8 11a7 7 0 0 0 0 2L4.6 14.5l2 3.4L9 17a8 8 0 0 0 1.4 1l.3 2.6h4L15 18a8 8 0 0 0 1.4-1l2.4.9 2-3.4-2-1.5a7 7 0 0 0 .2-1Z" /></>,
     logout: <><path d="M10 4H4v16h6M14 8l4 4-4 4M8 12h10" /></>,
