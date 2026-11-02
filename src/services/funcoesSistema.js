@@ -11,8 +11,8 @@ export function normalizarFuncaoSistema(funcao) {
 
 export function normalizarDetalheFuncao(dados) {
   const funcao = normalizarFuncaoSistema(dados);
-  if (!Number.isSafeInteger(dados.versao) || dados.versao < 0 || !Array.isArray(dados.funcionalidades)) throw contratoInvalido();
-  return { ...funcao, versao: dados.versao, funcionalidades: dados.funcionalidades.map(normalizarFuncionalidadeSistema) };
+  if (!Array.isArray(dados.funcionalidades)) throw contratoInvalido();
+  return { ...funcao, funcionalidades: dados.funcionalidades.map(normalizarFuncionalidadeSistema) };
 }
 
 export function validarCadastroFuncao(formulario) {
@@ -43,17 +43,16 @@ export function criarServicoFuncoesSistema(requisitar) {
     },
     atualizarAcessos: async (funcao, idsFuncionalidades, signal) => {
       validarId(funcao.id);
-      if (!Number.isSafeInteger(funcao.versao) || funcao.versao < 0 || !Array.isArray(idsFuncionalidades)
+      if (!Array.isArray(idsFuncionalidades)
         || !idsFuncionalidades.every((id) => Number.isInteger(id) && id > 0)) throw new ErroApi(400, "Confira as funcionalidades selecionadas.");
       try {
         const dados = await requisitar(`/funcoes-sistema/${funcao.id}/funcionalidades`, {
-          method: "PUT", body: { idsFuncionalidades: [...new Set(idsFuncionalidades)], versao: funcao.versao }, signal,
+          method: "PUT", body: { idsFuncionalidades: [...new Set(idsFuncionalidades)] }, signal,
         });
         const atualizada = normalizarDetalheFuncao(dados);
         if (atualizada.id !== funcao.id) throw contratoInvalido();
         return atualizada;
       } catch (erro) {
-        if (erro.status === 409) throw new ErroApi(409, "Esta função foi alterada por outra pessoa. Recarregue os acessos e revise a seleção antes de salvar.");
         if (erro.status === 404) throw new ErroApi(404, "A função ou uma das funcionalidades não está mais disponível. Recarregue os dados para continuar.");
         throw erro;
       }

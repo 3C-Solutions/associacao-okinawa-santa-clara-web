@@ -9,7 +9,6 @@ export function CamposAcessosFuncao({ funcao, funcionalidades, service: servico,
   const { usuario, podeAcessar } = usarAutenticacao();
   const [selecionadas, definirSelecionadas] = useState(() => funcao.funcionalidades.map((item) => item.id));
   const [erro, definirErro] = useState(null);
-  const [conflito, definirConflito] = useState(false);
   const [salvando, definirSalvando] = useState(false);
   const envio = useRef(null);
   useEffect(() => () => envio.current?.abort(), []);
@@ -18,11 +17,11 @@ export function CamposAcessosFuncao({ funcao, funcionalidades, service: servico,
   const removeAdministracao = minhaFuncao && !funcionalidades.some((item) => item.codigo === "TELA_FUNCOES_SISTEMA" && selecionadas.includes(item.id));
   const selecionar = (id, marcado) => {
     definirSelecionadas((anteriores) => marcado ? [...new Set([...anteriores, id])] : anteriores.filter((item) => item !== id));
-    if (!conflito) definirErro(null);
+    definirErro(null);
   };
   const enviar = async (evento) => {
     evento?.preventDefault();
-    if (envio.current || conflito || !podeAcessar("TELA_FUNCOES_SISTEMA")) return;
+    if (envio.current || !podeAcessar("TELA_FUNCOES_SISTEMA")) return;
     if (selecionadas.some((id) => !funcionalidades.some((item) => item.id === id))) {
       definirErro("Remova as seleções indisponíveis antes de salvar.");
       return;
@@ -37,7 +36,6 @@ export function CamposAcessosFuncao({ funcao, funcionalidades, service: servico,
     } catch (falha) {
       if (!controle.signal.aborted && falha.name !== "AbortError") {
         definirErro(falha.message);
-        if (falha.status === 409 || falha.status === 404) definirConflito(true);
       }
     } finally {
       if (!controle.signal.aborted) definirSalvando(false);
@@ -48,20 +46,20 @@ export function CamposAcessosFuncao({ funcao, funcionalidades, service: servico,
   if (!podeAcessar("TELA_FUNCOES_SISTEMA")) return null;
   return <Modal title={`Editar acessos de ${funcao.nome}`} onClose={fechar} footer={<>
     <Botao variant="outline" onClick={fechar} disabled={salvando}>Cancelar</Botao>
-    <Botao onClick={enviar} disabled={salvando || conflito}>{salvando ? "Salvando..." : "Salvar acessos"}</Botao>
+    <Botao onClick={enviar} disabled={salvando}>{salvando ? "Salvando..." : "Salvar acessos"}</Botao>
   </>}>
     <form onSubmit={enviar} noValidate className="space-y-5" aria-busy={salvando}>
       <Campo label="Nome da função" value={funcao.nome} readOnly />
       <CampoAreaTexto label="Descrição" value={funcao.descricao || "Não informada"} readOnly rows={2} />
       <p className="text-sm text-muted">As alterações serão aplicadas a todos os usuários vinculados a esta função.</p>
-      <SelecaoFuncionalidades catalogo={{ dados: funcionalidades, carregando: false, erro: null }} selecionadas={selecionadas} aoSelecionar={selecionar} aoRemoverIndisponiveis={definirSelecionadas} salvando={salvando || conflito} permiteVazio />
+      <SelecaoFuncionalidades catalogo={{ dados: funcionalidades, carregando: false, erro: null }} selecionadas={selecionadas} aoSelecionar={selecionar} aoRemoverIndisponiveis={definirSelecionadas} salvando={salvando} permiteVazio />
       {removeAdministracao && <p role="status" className="rounded-lg bg-warning-soft p-3 text-sm text-warning">Você está retirando o acesso administrativo da sua própria função. Após salvar, esta tela será fechada e você voltará ao Início.</p>}
       {erro && <p role="alert" className="text-sm font-semibold text-danger">{erro}</p>}
-      {conflito && <div className="space-y-2">
-        <p className="text-sm text-muted">Recarregar substitui sua seleção pela versão atual salva no sistema.</p>
-        <Botao variant="outline" onClick={aoRecarregar} disabled={salvando}>Recarregar versão atual</Botao>
+      {erro && <div className="space-y-2">
+        <p className="text-sm text-muted">Recarregar substitui sua seleção pelos acessos salvos no sistema.</p>
+        <Botao variant="outline" onClick={aoRecarregar} disabled={salvando}>Recarregar dados</Botao>
       </div>}
-      <button type="submit" className="sr-only" tabIndex={-1} disabled={salvando || conflito}>Salvar acessos</button>
+      <button type="submit" className="sr-only" tabIndex={-1} disabled={salvando}>Salvar acessos</button>
     </form>
   </Modal>;
 }
@@ -76,7 +74,7 @@ export default function FormularioAcessosFuncao({ roleId: id, service: servico, 
   }, [servico, catalogo, id]);
   const recurso = usarRecursoApi(carregar, permitido);
   if (!permitido) return null;
-  if (recurso.dados && !recurso.carregando && !recurso.erro) return <CamposAcessosFuncao key={`${id}-${recurso.dados.funcao.versao}`} {...recurso.dados} service={servico} onClose={aoFechar} onSaved={aoSalvar} onReload={recurso.recarregar} />;
+  if (recurso.dados && !recurso.carregando && !recurso.erro) return <CamposAcessosFuncao key={id} {...recurso.dados} service={servico} onClose={aoFechar} onSaved={aoSalvar} onReload={recurso.recarregar} />;
   return <Modal title="Editar acessos da função" onClose={aoFechar} footer={<Botao variant="outline" onClick={aoFechar}>Fechar</Botao>}>
     {recurso.carregando && <p role="status" className="py-6 text-center text-muted">Carregando a função e suas funcionalidades...</p>}
     {recurso.erro && <div className="space-y-4"><p role="alert" className="text-sm text-danger">{recurso.erro}</p><Botao variant="outline" onClick={recurso.recarregar}>Tentar novamente</Botao></div>}

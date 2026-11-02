@@ -63,10 +63,9 @@ A criação não altera as permissões de contas existentes automaticamente.
 Cada função possui a ação Editar acessos. O formulário consulta `GET /funcoes-sistema/{id}`
 e o catálogo atual, marcando as funcionalidades já vinculadas. Nome e descrição ficam
 somente para leitura, com fundo cinza. A atualização usa `PUT /funcoes-sistema/{id}/funcionalidades`,
-enviando a seleção completa e a versão consultada; `[]` retira todos os acessos do perfil.
+enviando a seleção completa; `[]` retira todos os acessos do perfil.
 O cadastro de novas funções continua exigindo pelo menos uma funcionalidade.
-Conflitos de edição retornam `409`: a seleção é preservada e o usuário pode recarregar
-explicitamente a versão atual para revisar e salvar. Não há sobrescrita automática.
+O formulário preserva a seleção quando o envio falha e permite recarregar os dados.
 As alterações atingem todos os usuários da função. Ao editar a própria função, o front
 força a atualização de `/auth/me`; se a permissão administrativa for retirada, volta ao Início.
 Outras sessões atualizam a navegação ao voltar à aba ou após uma resposta `403`.
