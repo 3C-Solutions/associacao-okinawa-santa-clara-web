@@ -56,8 +56,8 @@ export default function FuncoesSistema() {
 
   const concluirEdicao = async (atualizada) => {
     definirEditando(null);
+    if (atualizada.id === usuario.funcaoSistema.id && !await atualizarContexto({ forcar: true })) return;
     definirMensagem(`Acessos da função ${atualizada.nome} atualizados com sucesso.`);
-    if (atualizada.id === usuario.funcaoSistema.id) await atualizarContexto({ forcar: true });
   };
 
   const concluirCadastro = (criada) => {
