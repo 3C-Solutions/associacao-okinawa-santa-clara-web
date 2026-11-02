@@ -23,6 +23,7 @@ export function criarSessao({ api, storage, agora = Date.now, agendar = setTimeo
   let temporizador;
   let tarefaLogin;
   let tarefaContexto;
+  let versaoContexto = 0;
   const ouvintes = new Set();
   const publicar = (alteracoes) => {
     estado = { ...estado, ...alteracoes };
@@ -59,23 +60,25 @@ export function criarSessao({ api, storage, agora = Date.now, agendar = setTimeo
     }, Math.min(Math.max(credencial.expiresAt - agora(), 0), 2147483647));
   };
 
-  const atualizarContexto = () => {
-    if (tarefaContexto) return tarefaContexto;
+  const atualizarContexto = ({ forcar = false } = {}) => {
+    if (tarefaContexto && !forcar) return tarefaContexto;
     if (!credencial || verificarExpiracao()) return Promise.resolve(false);
     const atual = versao;
+    // Após uma alteração própria, consultas anteriores não podem restaurar permissões antigas.
+    const contextoAtual = ++versaoContexto;
     const { token } = credencial;
     const signal = controle.signal;
     publicar({ status: estado.status === "autenticado" ? "autenticado" : "carregando", atualizando: true, erro: null });
     const tarefa = (async () => {
       try {
         const dados = await api("/auth/me", { token, signal });
-        if (atual !== versao || signal.aborted || verificarExpiracao()) return false;
+        if (atual !== versao || contextoAtual !== versaoContexto || signal.aborted || verificarExpiracao()) return false;
         const contexto = validarContexto(dados);
         salvar();
         publicar({ ...contexto, status: "autenticado", atualizando: false, erro: null, aviso: null });
         return true;
       } catch (erro) {
-        if (atual !== versao || signal.aborted) return false;
+        if (atual !== versao || contextoAtual !== versaoContexto || signal.aborted) return false;
         if (erro.status === 401) sair(AVISO_SESSAO);
         else publicar({ status: "erro", usuario: null, permissoes: [], atualizando: false, erro: erro.message });
         return false;

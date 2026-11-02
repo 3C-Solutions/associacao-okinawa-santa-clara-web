@@ -60,6 +60,8 @@ O back permite a listagem para quem gerencia usuários ou funções; o cadastro 
 continua exigindo `TELA_FUNCOES_SISTEMA`. Se a consulta falhar, é possível salvar os demais
 campos mantendo a função atual. Alterar a própria conta atualiza `/auth/me`,
 inclusive para refletir revogação de acesso ou desativação.
+Essa atualização força uma nova consulta após o salvamento e descarta respostas de
+consultas anteriores, evitando restaurar permissões desatualizadas na sessão.
 Campos somente leitura ou desabilitados possuem fundo cinza; os editáveis permanecem brancos.
 
 Cadastro e exclusão permanecem indisponíveis. Os formulários anteriores de cadastro e
