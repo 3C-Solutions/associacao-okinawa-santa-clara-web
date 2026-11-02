@@ -2,7 +2,7 @@ import { Icone } from "./Icon.jsx";
 
 const baseEntrada = "w-full bg-transparent outline-none placeholder:text-muted disabled:text-muted";
 
-const baseCaixa = (erro) => `flex min-h-11 items-center rounded-lg border bg-white px-4 focus-within:ring-2 ${erro ? "border-danger focus-within:ring-danger/20" : "border-field focus-within:border-brand focus-within:ring-brand/20"}`;
+const baseCaixa = (erro, bloqueado = false) => `flex min-h-11 items-center rounded-lg border ${bloqueado ? "bg-gray-100" : "bg-white"} px-4 focus-within:ring-2 ${erro ? "border-danger focus-within:ring-danger/20" : "border-field focus-within:border-brand focus-within:ring-brand/20"}`;
 
 function EstruturaCampo({ label: rotulo, error: erro, hint: dica, required: obrigatorio, className: nomeClasse, children: filhos }) {
   return (
@@ -17,7 +17,7 @@ function EstruturaCampo({ label: rotulo, error: erro, hint: dica, required: obri
 export function Campo({ label: rotulo, value: valor, onChange: aoAlterar, type: tipo = "text", placeholder: textoExemplo, error: erro, hint: dica, required: obrigatorio, readOnly: somenteLeitura = false, disabled: desabilitado = false, className: nomeClasse = "", min: minimo, max: maximo, maxLength: tamanhoMaximo, step: etapa, suffix: sufixo, autoComplete }) {
   return (
     <EstruturaCampo label={rotulo} error={erro} hint={dica} required={obrigatorio} className={nomeClasse}>
-      <span className={`${baseCaixa(erro)} ${somenteLeitura ? "bg-canvas" : ""}`}>
+      <span className={baseCaixa(erro, somenteLeitura || desabilitado)}>
         <input type={tipo} value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} placeholder={textoExemplo} readOnly={somenteLeitura} disabled={desabilitado} min={minimo} max={maximo} maxLength={tamanhoMaximo} step={etapa} autoComplete={autoComplete} aria-invalid={erro ? true : undefined} className={baseEntrada} />
         {sufixo}
       </span>
@@ -25,11 +25,11 @@ export function Campo({ label: rotulo, value: valor, onChange: aoAlterar, type: 
   );
 }
 
-export function CampoSelecao({ label: rotulo, value: valor, onChange: aoAlterar, options: opcoes, error: erro, hint: dica, required: obrigatorio, className: nomeClasse = "", placeholder: textoExemplo }) {
+export function CampoSelecao({ label: rotulo, value: valor, onChange: aoAlterar, options: opcoes, error: erro, hint: dica, required: obrigatorio, className: nomeClasse = "", placeholder: textoExemplo, disabled: desabilitado = false }) {
   return (
     <EstruturaCampo label={rotulo} error={erro} hint={dica} required={obrigatorio} className={nomeClasse}>
-      <span className={baseCaixa(erro)}>
-        <select value={valor ?? ""} onChange={(evento) => aoAlterar(evento.target.value)} className={`${baseEntrada} bg-white py-2`}>
+      <span className={baseCaixa(erro, desabilitado)}>
+        <select value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} disabled={desabilitado} aria-label={rotulo || textoExemplo} aria-invalid={erro ? true : undefined} className={`${baseEntrada} py-2`}>
           {textoExemplo && <option value="">{textoExemplo}</option>}
           {opcoes.map((objeto) => (typeof objeto === "string" ? <option key={objeto} value={objeto}>{objeto}</option> : <option key={objeto.value} value={objeto.value}>{objeto.label}</option>))}
         </select>

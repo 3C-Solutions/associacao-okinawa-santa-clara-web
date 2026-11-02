@@ -135,7 +135,14 @@ export function criarSessao({ api, storage, agora = Date.now, agendar = setTimeo
   const requisitar = async (caminho, opcoes = {}) => {
     if (!credencial || verificarExpiracao() || estado.status !== "autenticado") throw new ErroApi(401, AVISO_SESSAO);
     const atual = versao;
-    const signal = controle.signal;
+    const solicitacao = new AbortController();
+    const cancelar = () => solicitacao.abort();
+    const sinais = [controle.signal, opcoes.signal].filter(Boolean);
+    sinais.forEach((sinal) => {
+      if (sinal.aborted) cancelar();
+      else sinal.addEventListener("abort", cancelar, { once: true });
+    });
+    const signal = solicitacao.signal;
     try {
       const resposta = await api(caminho, { ...opcoes, token: credencial.token, signal });
       if (atual !== versao || signal.aborted) throw new DOMException("Requisição cancelada", "AbortError");
@@ -147,6 +154,8 @@ export function criarSessao({ api, storage, agora = Date.now, agendar = setTimeo
         if (erro.status === 403) await atualizarContexto();
       }
       throw erro;
+    } finally {
+      sinais.forEach((sinal) => sinal.removeEventListener("abort", cancelar));
     }
   };
 

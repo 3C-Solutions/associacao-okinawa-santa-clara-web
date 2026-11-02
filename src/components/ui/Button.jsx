@@ -15,14 +15,14 @@ export function Botao({ children: filhos, onClick: aoClicar, variant: variante =
   );
 }
 
-export function BotaoIcone({ icon: icone, label: rotulo, onClick: aoClicar, active: ativo = false, count: quantidade, tone: tom = "brand", size: tamanho = "md" }) {
+export function BotaoIcone({ icon: icone, label: rotulo, onClick: aoClicar, active: ativo = false, count: quantidade, tone: tom = "brand", size: tamanho = "md", disabled: desabilitado = false }) {
   const tons = {
     brand: ativo ? "bg-brand text-white" : "bg-brand-soft text-brand hover:bg-brand-soft-strong",
     danger: "bg-danger-soft text-danger hover:brightness-95",
   };
   const tamanhos = { md: "size-11", sm: "size-9" };
   return (
-    <button type="button" aria-label={rotulo} title={rotulo} onClick={aoClicar} className={`relative flex ${tamanhos[tamanho]} shrink-0 items-center justify-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 ${tons[tom]}`}>
+    <button type="button" aria-label={rotulo} title={rotulo} disabled={desabilitado} onClick={aoClicar} className={`relative flex ${tamanhos[tamanho]} shrink-0 items-center justify-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${tons[tom]}`}>
       <Icone name={icone} size={tamanho === "sm" ? 17 : 20} />
       {quantidade !== undefined && quantidade > 0 && <span className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-danger px-1.5 py-0.5 text-xs font-bold leading-none text-white ring-2 ring-canvas">{quantidade}</span>}
     </button>
