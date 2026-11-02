@@ -12,6 +12,8 @@ const mensagens = {
   400: "Confira os dados informados e tente novamente.",
   401: "E-mail ou senha inválidos ou conta sem acesso.",
   403: "Você não tem permissão para realizar esta ação.",
+  404: "O registro solicitado não foi encontrado. Atualize os dados e tente novamente.",
+  409: "Os dados entram em conflito com um cadastro existente. Confira as informações e tente novamente.",
 };
 
 export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/api", adapter, timeoutMs = 15000 } = {}) {

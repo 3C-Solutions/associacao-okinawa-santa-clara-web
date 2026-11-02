@@ -1,144 +1,102 @@
 import { useMemo, useState } from "react";
-import { SENHA_INICIAL, TIPOS_USUARIOS, baixarCsv, hojeISO, identificadorUnico } from "@/lib/data.js";
-import { rotuloFamilia, familiaDe } from "@/lib/people.js";
-import { usarArmazenamento } from "@/store";
-import { Selo, Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao } from "@/components/ui";
-import { nomesDepartamentos } from "../helpers.js";
-import DetalhesAssociado from "./AssociateDetails.jsx";
-import FormularioUsuario from "./UserForm.jsx";
+import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
+import { usarRecursoApi } from "@/hooks/useApiResource.js";
+import { criarServicoUsuarios } from "@/services/usuarios.js";
+import { baixarCsv, hojeISO, mascararTelefone } from "@/lib/data.js";
+import { Selo, Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, Cartao } from "@/components/ui";
+import DetalhesUsuario from "./UserDetails.jsx";
+import FormularioEdicaoUsuario from "./UserEditForm.jsx";
 
-// ---------- Diretoria ----------
-// Lista todos os usuários do sistema e cadastra UM usuário por vez, escolhendo o tipo de perfil.
-const TONS_PAPEIS = { Diretoria: "danger", Departamento: "warning", "Associado responsável": "success", Dependente: "info" };
-const ORDEM_TIPOS = TIPOS_USUARIOS.map((tempo) => tempo.value);
-
-export default function AssociadosAdmin({ account: conta }) {
-  const { state: dadosAplicacao, save: salvar, remove: remover, removeWhere: removerOnde, addAccount: adicionarConta, updateAccounts: atualizarContas, removeAccounts: removerContas, toast: aviso, confirm: confirmar } = usarArmazenamento();
+export default function AssociadosAdmin() {
+  const { usuario: autenticado, requisitar, atualizarContexto, podeAcessar } = usarAutenticacao();
+  const servico = useMemo(() => criarServicoUsuarios(requisitar), [requisitar]);
+  const recurso = usarRecursoApi(servico.listar);
+  const usuarios = recurso.dados || [];
   const [consulta, definirConsulta] = useState("");
-  const [departamento, definirDepto] = useState("");
   const [filtroPapel, definirFiltroPapel] = useState("");
-  const [formulario, definirFormulario] = useState(null); // { user } — user = null cadastra um novo usuário
+  const [editando, definirEditando] = useState(null);
   const [visualizando, definirVisualizando] = useState(null);
+  const [mensagem, definirMensagem] = useState(null);
 
-  const usuarios = useMemo(() => {
-    const lista = [];
-    Object.entries(dadosAplicacao.profiles).forEach(([chave, parametro]) => {
-      const dadosCadastro = { birthDate: parametro.birthDate || "", familyId: parametro.familyId || "", dataCriacao: parametro.dataCriacao || parametro.createdAt };
-      if (parametro.role === "admin") lista.push({ id: chave, type: "admin", name: parametro.name, email: parametro.email, phone: parametro.phone, ...dadosCadastro, departmentIds: [], note: "Diretoria da associação" });
-      if (parametro.role === "department") lista.push({ id: chave, type: "department", name: parametro.name, email: parametro.email, phone: parametro.phone, ...dadosCadastro, departmentIds: parametro.departmentId ? [parametro.departmentId] : [], note: "Responsável pelo departamento" });
+  const funcoes = useMemo(() => {
+    const grupos = new Map();
+    usuarios.forEach((usuario) => {
+      const chave = usuario.funcaoId === null ? "sem-funcao" : String(usuario.funcaoId);
+      const funcao = grupos.get(chave) || { value: chave, nome: usuario.role, quantidade: 0 };
+      funcao.quantidade += 1;
+      grupos.set(chave, funcao);
     });
-    dadosAplicacao.associates.forEach((elementoA) => {
-      const familia = familiaDe(dadosAplicacao, elementoA);
-      lista.push({ id: elementoA.id, type: "member", name: elementoA.name, email: elementoA.email, phone: elementoA.phone, birthDate: elementoA.birthDate || "", departmentIds: elementoA.departmentIds, associate: elementoA, family: rotuloFamilia(familia), note: `${rotuloFamilia(familia)} · ${elementoA.dependents.length} dependente(s)` });
-      elementoA.dependents.forEach((parametro) => lista.push({ id: parametro.id, type: "dependent", name: parametro.name, email: parametro.email || "", phone: parametro.phone || elementoA.phone, birthDate: parametro.birthDate || "", departmentIds: parametro.departmentIds, associate: elementoA, person: parametro, family: rotuloFamilia(familia), note: `${parametro.relation} de ${elementoA.name} · ${rotuloFamilia(familia)}` }));
-    });
-    return lista.map((usuarioAtual) => {
-      const pessoa = usuarioAtual.type === "dependent" ? usuarioAtual.person : usuarioAtual.associate;
-      return { ...usuarioAtual, dataCriacao: usuarioAtual.dataCriacao || pessoa?.dataCriacao || pessoa?.createdAt, role: TIPOS_USUARIOS.find((tempo) => tempo.value === usuarioAtual.type).label };
-    });
-  }, [dadosAplicacao]);
-
+    return [...grupos.values()].sort((a, b) => a.nome.localeCompare(b.nome)).map((funcao) => ({ value: funcao.value, label: `${funcao.nome} (${funcao.quantidade})` }));
+  }, [usuarios]);
+  // Uma função removida da lista não deixa um filtro invisível prendendo a consulta.
+  const filtroAtivo = funcoes.some((funcao) => funcao.value === filtroPapel) ? filtroPapel : "";
   const linhas = useMemo(() => {
-    const termo = consulta.trim().toLowerCase();
+    const termo = consulta.trim().toLocaleLowerCase("pt-BR");
     return usuarios
-      .filter((usuarioAtual) => !filtroPapel || usuarioAtual.type === filtroPapel)
-      .filter((usuarioAtual) => !departamento || usuarioAtual.departmentIds.includes(departamento))
-      .filter((usuarioAtual) => !termo || `${usuarioAtual.name} ${usuarioAtual.email} ${usuarioAtual.phone} ${usuarioAtual.note}`.toLowerCase().includes(termo))
-      .sort((elementoA, elementoB) => ORDEM_TIPOS.indexOf(elementoA.type) - ORDEM_TIPOS.indexOf(elementoB.type) || elementoA.name.localeCompare(elementoB.name));
-  }, [usuarios, consulta, departamento, filtroPapel]);
+      .filter((usuario) => !filtroAtivo || (usuario.funcaoId === null ? "sem-funcao" : String(usuario.funcaoId)) === filtroAtivo)
+      .filter((usuario) => !termo || `${usuario.name} ${usuario.email} ${usuario.phone} ${usuario.role} ${usuario.note}`.toLocaleLowerCase("pt-BR").includes(termo))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [usuarios, consulta, filtroAtivo]);
 
-  // ---------- cadastro (um usuário por vez) ----------
-  const criar = (elementoF) => {
-    const base = { name: elementoF.name, email: elementoF.email, phone: elementoF.phone, birthDate: elementoF.birthDate };
-    if (elementoF.type === "admin") {
-      adicionarConta(`u-${identificadorUnico()}`, { role: "admin", ...base, familyId: elementoF.familyId, emailNotifications: true }, SENHA_INICIAL);
-    } else {
-      const identificador = `a-${identificadorUnico()}`;
-      salvar("associates", { id: identificador, familyId: elementoF.familyId, ...base, departmentIds: [], dependents: [] });
-      adicionarConta(`u-${identificador}`, { role: "member", ...base, associateId: identificador, emailNotifications: true }, SENHA_INICIAL);
-    }
-    aviso(`${TIPOS_USUARIOS.find((tempo) => tempo.value === elementoF.type).label} cadastrado(a). Senha inicial: ${SENHA_INICIAL}.`);
+  const salvar = async (usuario, formulario, alterarFuncao, signal) => {
+    const atualizado = await servico.atualizar(usuario, formulario, alterarFuncao && podeAcessar("TELA_USUARIOS"), signal);
+    if (signal.aborted) return;
+    recurso.atualizarDados((lista) => (lista || []).map((item) => item.id === atualizado.id ? atualizado : item));
+    definirEditando(null);
+    definirMensagem("Usuário atualizado com sucesso.");
+    if (atualizado.id === autenticado.id) await atualizarContexto();
   };
 
-  const atualizar = (elementoF, usuarioAtual) => {
-    const base = { name: elementoF.name, email: elementoF.email, phone: elementoF.phone, birthDate: elementoF.birthDate };
-    if (usuarioAtual.type === "admin" || usuarioAtual.type === "department") {
-      atualizarContas((ignorado, chave) => chave === usuarioAtual.id, { ...base, familyId: elementoF.familyId, ...(usuarioAtual.type === "department" ? { departmentId: elementoF.departmentId } : {}) });
-    } else if (usuarioAtual.type === "member") {
-      salvar("associates", { ...usuarioAtual.associate, ...base, familyId: elementoF.familyId });
-      atualizarContas((parametro) => parametro.role === "member" && parametro.associateId === usuarioAtual.associate.id, base);
-    } else {
-      salvar("associates", { ...usuarioAtual.associate, dependents: usuarioAtual.associate.dependents.map((parametro) => (parametro.id === usuarioAtual.id ? { ...parametro, ...base, relation: elementoF.relation } : parametro)) });
-      atualizarContas((parametro) => parametro.personId === usuarioAtual.id, base);
-    }
-    aviso("Usuário atualizado");
+  const exportarCsv = () => {
+    const celula = (valor) => /^[\s]*[=+\-@]/.test(String(valor || "")) ? `'${valor}` : valor;
+    baixarCsv(`usuarios-${hojeISO()}.csv`, ["Nome", "Função", "E-mail", "Telefone", "Família", "Vínculo", "Departamentos", "Situação"],
+      linhas.map((usuario) => [usuario.name, usuario.role, usuario.email, usuario.phone, usuario.family, usuario.note, "Não disponível", usuario.ativo ? "Ativo" : "Inativo"].map(celula)));
+    definirMensagem("Arquivo CSV gerado com os usuários filtrados.");
   };
-
-  const enviar = (elementoF) => { if (formulario.user) atualizar(elementoF, formulario.user); else criar(elementoF); definirFormulario(null); };
-
-  // ---------- exclusão ----------
-  const excluir = (usuarioAtual) => {
-    if (usuarioAtual.type === "admin" && Object.values(dadosAplicacao.profiles).filter((parametro) => parametro.role === "admin").length <= 1) { aviso("Mantenha ao menos um usuário da Diretoria.", "error"); return; }
-    const mensagens = {
-      admin: `Excluir ${usuarioAtual.name}? Ele(a) perderá o acesso à Diretoria.`,
-      department: `Excluir ${usuarioAtual.name}? Ele(a) perderá o acesso ao departamento.`,
-      member: `Excluir ${usuarioAtual.name} e seus ${usuarioAtual.associate?.dependents.length} dependente(s)? Essa ação não pode ser desfeita.`,
-      dependent: `Excluir ${usuarioAtual.name}? As inscrições em departamentos também serão removidas.`,
-    };
-    confirmar({
-      title: "Excluir usuário",
-      message: mensagens[usuarioAtual.type],
-      onConfirm: () => {
-        if (usuarioAtual.type === "member") remover("associates", usuarioAtual.associate.id);
-        else if (usuarioAtual.type === "dependent") {
-          salvar("associates", { ...usuarioAtual.associate, dependents: usuarioAtual.associate.dependents.filter((parametro) => parametro.id !== usuarioAtual.id) });
-          removerOnde("enrollmentRequests", (resultado) => resultado.personId === usuarioAtual.id);
-          removerContas((parametro) => parametro.personId === usuarioAtual.id);
-        } else removerContas((ignorado, chave) => chave === usuarioAtual.id);
-        aviso("Usuário excluído");
-      },
-    });
-  };
-
-  const exportarCsv = () => { baixarCsv(`usuarios-${hojeISO()}.csv`, ["Nome", "Função", "E-mail", "Telefone", "Família", "Vínculo", "Departamentos"], linhas.map((usuarioAtual) => [usuarioAtual.name, usuarioAtual.role, usuarioAtual.email, usuarioAtual.phone, usuarioAtual.family || "", usuarioAtual.note, nomesDepartamentos(dadosAplicacao, usuarioAtual.departmentIds).join(", ")])); aviso("Arquivo CSV gerado"); };
-
   const colunas = [
-    { key: "name", label: "Nome", render: (usuarioAtual) => <span className="font-semibold">{usuarioAtual.name}</span> },
-    { key: "role", label: "Função", render: (usuarioAtual) => <Selo tone={TONS_PAPEIS[usuarioAtual.role]}>{usuarioAtual.role}</Selo> },
-    { key: "note", label: "Vínculo", render: (usuarioAtual) => <span className="text-muted">{usuarioAtual.note}</span> },
-    { key: "phone", label: "Telefone" },
-    { key: "departments", label: "Departamentos", render: (usuarioAtual) => <span className="text-muted">{nomesDepartamentos(dadosAplicacao, usuarioAtual.departmentIds).join(", ") || "—"}</span> },
+    { key: "name", label: "Nome", render: (usuario) => <><span className="block font-semibold">{usuario.name}</span><span className="block text-xs text-muted">{usuario.email}</span></> },
+    { key: "role", label: "Função", render: (usuario) => <div className="flex flex-col items-start gap-1"><Selo tone="info">{usuario.role}</Selo><Selo tone={usuario.ativo ? "success" : "danger"}>{usuario.ativo ? "Ativo" : "Inativo"}</Selo></div> },
+    { key: "note", label: "Vínculo", render: (usuario) => <span className="text-muted">{usuario.note}</span> },
+    { key: "phone", label: "Telefone", render: (usuario) => {
+      const telefone = usuario.phone || "";
+      const digitos = telefone.replace(/\D/g, "");
+      return [10, 11].includes(digitos.length) ? mascararTelefone(telefone) : telefone || "—";
+    } },
+    { key: "departments", label: "Departamentos", render: () => <span className="text-muted">Não disponível</span> },
   ];
-  const quantidades = (tipo) => usuarios.filter((usuarioAtual) => usuarioAtual.type === tipo).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy={recurso.carregando}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 flex-col gap-3 sm:flex-row">
           <EntradaBusca value={consulta} onChange={definirConsulta} placeholder="Buscar por nome" className="flex-1 sm:max-w-md" />
-          <CampoSelecao label="" value={filtroPapel} onChange={definirFiltroPapel} placeholder="Todas as funções" options={TIPOS_USUARIOS.map((tempo) => ({ value: tempo.value, label: `${tempo.label} (${quantidades(tempo.value)})` }))} className="sm:w-60 [&>span:first-child]:hidden" />
-          <CampoSelecao label="" value={departamento} onChange={definirDepto} placeholder="Todos os departamentos" options={dadosAplicacao.departments.map((dataValor) => ({ value: dataValor.id, label: dataValor.name }))} className="sm:w-60 [&>span:first-child]:hidden" />
+          <CampoSelecao label="" value={filtroAtivo} onChange={definirFiltroPapel} placeholder="Todas as funções" options={funcoes} disabled={recurso.carregando} className="sm:w-60 [&>span:first-child]:hidden" />
+          <CampoSelecao label="" value="" placeholder="Departamentos indisponíveis" options={[]} disabled className="sm:w-60 [&>span:first-child]:hidden" />
         </div>
         <div className="flex gap-2">
-          <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length}><Icone name="download" size={18} /> Exportar</Botao>
-          <Botao onClick={() => definirFormulario({ user: null })}><Icone name="plus" size={18} /> Novo usuário</Botao>
+          <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length || recurso.carregando || !!recurso.erro}><Icone name="download" size={18} /> Exportar</Botao>
+          <Botao disabled><Icone name="plus" size={18} /> Novo usuário</Botao>
         </div>
       </div>
-      <p className="text-sm text-muted">{linhas.length} {linhas.length === 1 ? "usuário encontrado" : "usuários encontrados"}.</p>
-      <TabelaDados
-        columns={colunas}
-        rows={linhas}
-        empty={<EstadoVazio icon="person" title="Nenhum usuário encontrado">Ajuste a busca ou os filtros, ou cadastre um novo usuário.</EstadoVazio>}
-        actions={(usuarioAtual) => (usuarioAtual.id === conta
-          ? <span className="text-xs text-muted">Em Configurações</span>
-          : (<>
-              {usuarioAtual.associate && <BotaoIcone icon="eye" label={usuarioAtual.type === "member" ? `Ver detalhes de ${usuarioAtual.name}` : `Ver família de ${usuarioAtual.name}`} size="sm" onClick={() => definirVisualizando(usuarioAtual.associate)} />}
-              <BotaoIcone icon="edit" label={`Editar ${usuarioAtual.name}`} size="sm" onClick={() => definirFormulario({ user: usuarioAtual })} />
-              <BotaoIcone icon="trash" label={`Excluir ${usuarioAtual.name}`} tone="danger" size="sm" onClick={() => excluir(usuarioAtual)} />
-            </>))}
-      />
-      {formulario && <FormularioUsuario user={formulario.user} onClose={() => definirFormulario(null)} onSave={enviar} />}
-      {visualizando && <DetalhesAssociado associate={dadosAplicacao.associates.find((elementoA) => elementoA.id === visualizando.id) || visualizando} onClose={() => definirVisualizando(null)} onEdit={() => { definirFormulario({ user: usuarios.find((usuarioAtual) => usuarioAtual.id === visualizando.id) }); definirVisualizando(null); }} />}
+      <p className="text-sm text-muted">Cadastro, exclusão e vínculos com departamentos estarão disponíveis em uma próxima etapa.</p>
+      {mensagem && <p role="status" className="rounded-lg bg-success-soft px-4 py-3 text-sm text-success">{mensagem}</p>}
+      {recurso.carregando ? <Cartao className="p-8"><p role="status" className="text-center text-muted">Carregando usuários...</p></Cartao> : recurso.erro ? (
+        <Cartao className="space-y-4 p-6"><p role="alert" className="text-sm text-danger">{recurso.erro}</p><Botao variant="outline" onClick={recurso.recarregar}>Tentar novamente</Botao></Cartao>
+      ) : (
+        <>
+          <p className="text-sm text-muted">{linhas.length} {linhas.length === 1 ? "usuário encontrado" : "usuários encontrados"}.</p>
+          <TabelaDados columns={colunas} rows={linhas}
+            empty={<EstadoVazio icon="person" title="Nenhum usuário encontrado">{usuarios.length ? "Ajuste a busca ou os filtros." : "Não há usuários cadastrados para exibir."}</EstadoVazio>}
+            actions={(usuario) => <>
+              <BotaoIcone icon="eye" label={`Ver detalhes de ${usuario.name}`} size="sm" onClick={() => { definirMensagem(null); definirVisualizando(usuario); }} />
+              <BotaoIcone icon="edit" label={`Editar ${usuario.name}`} size="sm" onClick={() => { definirMensagem(null); definirEditando(usuario.id); }} />
+              <BotaoIcone icon="trash" label={`Excluir ${usuario.name} (em breve)`} tone="danger" size="sm" disabled />
+            </>}
+          />
+        </>
+      )}
+      {visualizando && <DetalhesUsuario key={visualizando.id} user={visualizando} service={servico} onClose={() => definirVisualizando(null)} onEdit={(usuario) => { definirVisualizando(null); definirEditando(usuario.id); }} />}
+      {editando !== null && <FormularioEdicaoUsuario key={editando} userId={editando} service={servico} onClose={() => definirEditando(null)} onSave={salvar} />}
     </div>
   );
 }

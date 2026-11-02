@@ -45,12 +45,26 @@ Após o login, o painel reaproveita o layout anterior com sidebar, cabeçalho e 
 mobile, utilizando nome, e-mail e função retornados por `/auth/me`. O Início está disponível
 a toda conta autenticada. O catálogo do painel libera Usuários com `TELA_USUARIOS` e
 Funções do sistema com `TELA_FUNCOES_SISTEMA`, inclusive pelos atalhos do Início.
-Nesta etapa, esses destinos exibem "Em breve"; seus dados e operações serão integrados depois.
+Usuários abre a tela original adaptada para consultar `GET /usuarios` e `GET /usuarios/{id}`.
+O front trata `null` na listagem como uma lista vazia, preservando o contrato atual do back.
+Busca, filtros de função e exportação CSV utilizam os dados reais retornados pela API.
+O filtro e a coluna de departamentos indicam indisponibilidade até a integração dos vínculos.
+Funções do sistema continua exibindo "Em breve" nesta etapa.
 Grupos sem destinos autorizados são ocultados. Se a permissão da tela aberta for revogada,
 o conteúdo volta ao Início. Permissões desconhecidas não abrem telas automaticamente.
 
+O formulário de edição consulta os dados atuais e envia somente nome, telefone, situação
+e função pelo `PUT /usuarios/{id}`. E-mail, nascimento e família ficam disponíveis para consulta.
+O seletor de função consulta `GET /funcoes-sistema` com a permissão `TELA_USUARIOS`.
+O back permite a listagem para quem gerencia usuários ou funções; o cadastro de funções
+continua exigindo `TELA_FUNCOES_SISTEMA`. Se a consulta falhar, é possível salvar os demais
+campos mantendo a função atual. Alterar a própria conta atualiza `/auth/me`,
+inclusive para refletir revogação de acesso ou desativação.
+Campos somente leitura ou desabilitados possuem fundo cinza; os editáveis permanecem brancos.
+
+Cadastro e exclusão permanecem indisponíveis. Os formulários anteriores de cadastro e
+os outros módulos do protótipo continuam preservados para as próximas integrações.
 O painel autenticado não consome perfis, indicadores ou notificações de demonstração.
-Os componentes antigos de gestão continuam preservados, aguardando integração de dados
-e escopos. O armazenamento do site público permanece independente da sessão real.
+O armazenamento do site público permanece independente da sessão real.
 Permissões são comparadas pelo código exato, independentemente do nome da função
 ou do prefixo do código. Recuperação de senha depende de atendimento da administração.
