@@ -54,7 +54,13 @@ A tela possui busca local por nome ou descrição, contagem de resultados e esta
 carregamento, lista vazia e erro com nova tentativa. A consulta utiliza o mesmo serviço
 do seletor na edição de usuários. O acesso à tela continua exigindo `TELA_FUNCOES_SISTEMA`;
 quem possui apenas `TELA_USUARIOS` pode consultar as opções no formulário de usuários.
-Cadastro, edição e exclusão de funções ficam para as próximas etapas.
+O botão Nova função consulta `GET /funcionalidades-sistema` e permite cadastrar nome,
+descrição opcional e funcionalidades pelo `POST /funcoes-sistema`. Nome tem limite de
+100 caracteres, descrição de 255 e pelo menos uma funcionalidade deve ser selecionada.
+O formulário preserva o preenchimento quando o envio falha e permite recarregar o catálogo.
+Após sucesso, atualiza a listagem; a nova função fica disponível ao abrir a edição de usuários.
+A criação não altera as permissões de contas existentes automaticamente.
+Edição e exclusão de funções ficam para as próximas etapas.
 Grupos sem destinos autorizados são ocultados. Se a permissão da tela aberta for revogada,
 o conteúdo volta ao Início. Permissões desconhecidas não abrem telas automaticamente.
 

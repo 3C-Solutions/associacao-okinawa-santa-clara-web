@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Icone } from "@/components/ui";
 
-// Item de menu em forma de pasta: abre e fecha ao clicar, mostrando a hierarquia de telas abaixo dele.
+// Grupo expansível que utiliza o ícone definido no catálogo de navegação.
 export default function GrupoNavegacao({ item: item, screen: tela, onNavigate: aoNavegar }) {
   const temFilhoAtivo = item.children.some((filho) => filho.id === tela);
   // a escolha do clique vale para a tela atual; ao mudar de tela, a pasta abre sozinha só se a tela ativa for uma das filhas
@@ -16,7 +16,7 @@ export default function GrupoNavegacao({ item: item, screen: tela, onNavigate: a
         onClick={() => definirPreferencia({ screen: tela, open: !abrir })}
         className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand ${temFilhoAtivo ? "bg-brand-soft text-brand" : "text-ink hover:bg-canvas"}`}
       >
-        <Icone name={abrir ? "folderOpen" : "folder"} />
+        <Icone name={item.icon === "folder" && abrir ? "folderOpen" : item.icon} />
         <span className="flex-1 text-left">{item.label}</span>
         <span className={`transition-transform ${abrir ? "rotate-90" : ""}`}><Icone name="arrow" size={16} /></span>
       </button>

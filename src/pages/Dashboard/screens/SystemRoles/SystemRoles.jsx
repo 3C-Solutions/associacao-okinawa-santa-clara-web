@@ -2,21 +2,26 @@ import { useMemo, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { usarRecursoApi } from "@/hooks/useApiResource.js";
 import { criarServicoFuncoesSistema } from "@/services/funcoesSistema.js";
-import { Botao, Cartao, EntradaBusca, EstadoVazio, TabelaDados } from "@/components/ui";
+import { Botao, Cartao, EntradaBusca, EstadoVazio, Icone, TabelaDados } from "@/components/ui";
+import FormularioFuncaoSistema from "./SystemRoleForm.jsx";
 
 const colunas = [
   { key: "nome", label: "Nome", render: (funcao) => <span className="font-semibold">{funcao.nome}</span> },
   { key: "descricao", label: "Descrição", render: (funcao) => <span className="whitespace-pre-wrap break-words text-muted">{funcao.descricao.trim() || "Não informada"}</span> },
 ];
 
-export function ConteudoFuncoesSistema({ recurso, consulta, aoBuscar }) {
+export function ConteudoFuncoesSistema({ recurso, consulta, aoBuscar, aoCadastrar, mensagem }) {
   const funcoes = recurso.dados || [];
   const termo = consulta.trim().toLocaleLowerCase("pt-BR");
   const linhas = funcoes.filter((funcao) => !termo || `${funcao.nome} ${funcao.descricao}`.toLocaleLowerCase("pt-BR").includes(termo));
 
   return (
     <div className="space-y-6" aria-busy={recurso.carregando}>
-      <EntradaBusca value={consulta} onChange={aoBuscar} placeholder="Buscar por nome ou descrição" className="sm:max-w-md" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <EntradaBusca value={consulta} onChange={aoBuscar} placeholder="Buscar por nome ou descrição" className="flex-1 sm:max-w-md" />
+        {aoCadastrar && <Botao onClick={aoCadastrar}><Icone name="plus" size={18} /> Nova função</Botao>}
+      </div>
+      {mensagem && <p role="status" className="rounded-lg bg-success-soft px-4 py-3 text-sm text-success">{mensagem}</p>}
       {recurso.carregando ? (
         <Cartao className="p-8"><p role="status" className="text-center text-muted">Carregando funções do sistema...</p></Cartao>
       ) : recurso.erro ? (
@@ -44,7 +49,19 @@ export default function FuncoesSistema() {
   const servico = useMemo(() => criarServicoFuncoesSistema(requisitar), [requisitar]);
   const recurso = usarRecursoApi(servico.listar, permitido);
   const [consulta, definirConsulta] = useState("");
+  const [cadastrando, definirCadastrando] = useState(false);
+  const [mensagem, definirMensagem] = useState(null);
+
+  const concluirCadastro = (criada) => {
+    definirCadastrando(false);
+    definirConsulta("");
+    definirMensagem(`Função ${criada.nome} cadastrada com sucesso.`);
+    recurso.recarregar();
+  };
 
   if (!permitido) return null;
-  return <ConteudoFuncoesSistema recurso={recurso} consulta={consulta} aoBuscar={definirConsulta} />;
+  return <>
+    <ConteudoFuncoesSistema recurso={recurso} consulta={consulta} aoBuscar={definirConsulta} mensagem={mensagem} aoCadastrar={() => { definirMensagem(null); definirCadastrando(true); }} />
+    {cadastrando && <FormularioFuncaoSistema service={servico} onClose={() => definirCadastrando(false)} onCreated={concluirCadastro} />}
+  </>;
 }
