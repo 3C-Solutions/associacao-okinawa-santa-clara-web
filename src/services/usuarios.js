@@ -1,12 +1,8 @@
 import { ErroApi } from "../lib/api.js";
+import { normalizarFuncaoSistema } from "./funcoesSistema.js";
 
 const idValido = (id) => Number.isInteger(id) && id > 0;
 const contratoInvalido = () => new ErroApi(502, "Não foi possível carregar os dados do usuário. Tente novamente.");
-
-function normalizarFuncao(funcao) {
-  if (!idValido(funcao?.id) || typeof funcao.nome !== "string") throw contratoInvalido();
-  return { id: funcao.id, nome: funcao.nome, descricao: funcao.descricao ?? "" };
-}
 
 export function dataParaEntrada(valor) {
   if (!valor) return "";
@@ -27,7 +23,7 @@ function formatarEndereco(endereco) {
 export function normalizarUsuario(dados) {
   if (!idValido(dados?.id) || typeof dados.nome !== "string" || typeof dados.email !== "string" || typeof dados.ativo !== "boolean"
     || (dados.telefone != null && typeof dados.telefone !== "string")) throw contratoInvalido();
-  const funcao = dados.funcaoSistema ? normalizarFuncao(dados.funcaoSistema) : null;
+  const funcao = dados.funcaoSistema ? normalizarFuncaoSistema(dados.funcaoSistema) : null;
   return {
     id: dados.id, name: dados.nome, email: dados.email, phone: dados.telefone ?? "",
     birthDate: dataParaEntrada(dados.dataNascimento), birthDateLabel: dados.dataNascimento || "—",
@@ -69,11 +65,6 @@ export function criarServicoUsuarios(requisitar) {
       const atualizado = normalizarUsuario(await requisitar(`/usuarios/${usuario.id}`, { method: "PUT", body, signal }));
       if (atualizado.id !== usuario.id) throw contratoInvalido();
       return atualizado;
-    },
-    listarFuncoes: async (signal) => {
-      const dados = await requisitar("/funcoes-sistema", { signal });
-      if (!Array.isArray(dados)) throw new ErroApi(502, "Não foi possível carregar as funções disponíveis. Tente novamente.");
-      return dados.map(normalizarFuncao);
     },
   };
 }

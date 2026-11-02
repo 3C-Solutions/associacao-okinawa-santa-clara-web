@@ -49,7 +49,12 @@ Usuários abre a tela original adaptada para consultar `GET /usuarios` e `GET /u
 O front trata `null` na listagem como uma lista vazia, preservando o contrato atual do back.
 Busca, filtros de função e exportação CSV utilizam os dados reais retornados pela API.
 O filtro e a coluna de departamentos indicam indisponibilidade até a integração dos vínculos.
-Funções do sistema continua exibindo "Em breve" nesta etapa.
+Funções do sistema consulta `GET /funcoes-sistema` e exibe nome e descrição dos perfis reais.
+A tela possui busca local por nome ou descrição, contagem de resultados e estados de
+carregamento, lista vazia e erro com nova tentativa. A consulta utiliza o mesmo serviço
+do seletor na edição de usuários. O acesso à tela continua exigindo `TELA_FUNCOES_SISTEMA`;
+quem possui apenas `TELA_USUARIOS` pode consultar as opções no formulário de usuários.
+Cadastro, edição e exclusão de funções ficam para as próximas etapas.
 Grupos sem destinos autorizados são ocultados. Se a permissão da tela aberta for revogada,
 o conteúdo volta ao Início. Permissões desconhecidas não abrem telas automaticamente.
 
