@@ -44,7 +44,7 @@ export default function AssociadosAdmin() {
     recurso.atualizarDados((lista) => (lista || []).map((item) => item.id === atualizado.id ? atualizado : item));
     definirEditando(null);
     definirMensagem("Usuário atualizado com sucesso.");
-    if (atualizado.id === autenticado.id) await atualizarContexto();
+    if (atualizado.id === autenticado.id) await atualizarContexto({ forcar: true });
   };
 
   const exportarCsv = () => {
