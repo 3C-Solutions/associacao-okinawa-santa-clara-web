@@ -38,11 +38,11 @@ export function CampoSelecao({ label: rotulo, value: valor, onChange: aoAlterar,
   );
 }
 
-export function CampoAreaTexto({ label: rotulo, value: valor, onChange: aoAlterar, error: erro, required: obrigatorio, rows: linhas = 5, className: nomeClasse = "", placeholder: textoExemplo, disabled: desabilitado = false, maxLength: tamanhoMaximo }) {
+export function CampoAreaTexto({ label: rotulo, value: valor, onChange: aoAlterar, error: erro, required: obrigatorio, rows: linhas = 5, className: nomeClasse = "", placeholder: textoExemplo, disabled: desabilitado = false, readOnly: somenteLeitura = false, maxLength: tamanhoMaximo }) {
   return (
     <EstruturaCampo label={rotulo} error={erro} required={obrigatorio} className={nomeClasse}>
-      <span className={`${baseCaixa(erro, desabilitado)} items-start py-2.5`}>
-        <textarea rows={linhas} value={valor ?? ""} onChange={(evento) => aoAlterar(evento.target.value)} placeholder={textoExemplo} disabled={desabilitado} maxLength={tamanhoMaximo} aria-invalid={erro ? true : undefined} className={`${baseEntrada} resize-y`} />
+      <span className={`${baseCaixa(erro, desabilitado || somenteLeitura)} items-start py-2.5`}>
+        <textarea rows={linhas} value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} placeholder={textoExemplo} disabled={desabilitado} readOnly={somenteLeitura} maxLength={tamanhoMaximo} aria-invalid={erro ? true : undefined} className={`${baseEntrada} resize-y`} />
       </span>
     </EstruturaCampo>
   );

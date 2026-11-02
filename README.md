@@ -46,7 +46,7 @@ mobile, utilizando nome, e-mail e função retornados por `/auth/me`. O Início 
 a toda conta autenticada. O catálogo do painel libera Usuários com `TELA_USUARIOS` e
 Funções do sistema com `TELA_FUNCOES_SISTEMA`, inclusive pelos atalhos do Início.
 Usuários abre a tela original adaptada para consultar `GET /usuarios` e `GET /usuarios/{id}`.
-O front trata `null` na listagem como uma lista vazia, preservando o contrato atual do back.
+O back retorna `[]` quando a listagem de usuários está vazia; o front utiliza esse contrato.
 Busca, filtros de função e exportação CSV utilizam os dados reais retornados pela API.
 O filtro e a coluna de departamentos indicam indisponibilidade até a integração dos vínculos.
 Funções do sistema consulta `GET /funcoes-sistema` e exibe nome e descrição dos perfis reais.
@@ -60,7 +60,17 @@ descrição opcional e funcionalidades pelo `POST /funcoes-sistema`. Nome tem li
 O formulário preserva o preenchimento quando o envio falha e permite recarregar o catálogo.
 Após sucesso, atualiza a listagem; a nova função fica disponível ao abrir a edição de usuários.
 A criação não altera as permissões de contas existentes automaticamente.
-Edição e exclusão de funções ficam para as próximas etapas.
+Cada função possui a ação Editar acessos. O formulário consulta `GET /funcoes-sistema/{id}`
+e o catálogo atual, marcando as funcionalidades já vinculadas. Nome e descrição ficam
+somente para leitura, com fundo cinza. A atualização usa `PUT /funcoes-sistema/{id}/funcionalidades`,
+enviando a seleção completa e a versão consultada; `[]` retira todos os acessos do perfil.
+O cadastro de novas funções continua exigindo pelo menos uma funcionalidade.
+Conflitos de edição retornam `409`: a seleção é preservada e o usuário pode recarregar
+explicitamente a versão atual para revisar e salvar. Não há sobrescrita automática.
+As alterações atingem todos os usuários da função. Ao editar a própria função, o front
+força a atualização de `/auth/me`; se a permissão administrativa for retirada, volta ao Início.
+Outras sessões atualizam a navegação ao voltar à aba ou após uma resposta `403`.
+Exclusão de funções fica para uma próxima etapa.
 Grupos sem destinos autorizados são ocultados. Se a permissão da tela aberta for revogada,
 o conteúdo volta ao Início. Permissões desconhecidas não abrem telas automaticamente.
 
