@@ -41,8 +41,16 @@ bloqueado, o acesso funciona somente em memória. A validade atual é de 15 minu
 sem refresh token. Sair limpa a sessão do navegador; o JWT continua válido no back
 até expirar. Voltar à aba atualiza identificação, função e permissões.
 
-A primeira entrega contém a página inicial autenticada, os estados de erro e a saída.
-Os módulos antigos de gestão continuam aguardando integração de dados e escopos;
-os acessos exibidos nessa página são informativos e não abrem os módulos de demonstração.
+Após o login, o painel reaproveita o layout anterior com sidebar, cabeçalho e navegação
+mobile, utilizando nome, e-mail e função retornados por `/auth/me`. O Início está disponível
+a toda conta autenticada. O catálogo do painel libera Usuários com `TELA_USUARIOS` e
+Funções do sistema com `TELA_FUNCOES_SISTEMA`, inclusive pelos atalhos do Início.
+Nesta etapa, esses destinos exibem "Em breve"; seus dados e operações serão integrados depois.
+Grupos sem destinos autorizados são ocultados. Se a permissão da tela aberta for revogada,
+o conteúdo volta ao Início. Permissões desconhecidas não abrem telas automaticamente.
+
+O painel autenticado não consome perfis, indicadores ou notificações de demonstração.
+Os componentes antigos de gestão continuam preservados, aguardando integração de dados
+e escopos. O armazenamento do site público permanece independente da sessão real.
 Permissões são comparadas pelo código exato, independentemente do nome da função
 ou do prefixo do código. Recuperação de senha depende de atendimento da administração.
