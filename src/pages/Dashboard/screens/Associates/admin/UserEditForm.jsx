@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { usarRecursoApi } from "@/hooks/useApiResource.js";
+import { criarServicoFuncoesSistema } from "@/services/funcoesSistema.js";
 import { Botao, Campo, CampoSelecao, Modal } from "@/components/ui";
 
-export function CamposEdicaoUsuario({ user: usuario, service: servico, onClose: aoFechar, onSave: aoSalvar }) {
-  const { usuario: autenticado, podeAcessar } = usarAutenticacao();
+export function CamposEdicaoUsuario({ user: usuario, onClose: aoFechar, onSave: aoSalvar }) {
+  const { usuario: autenticado, podeAcessar, requisitar } = usarAutenticacao();
+  const servicoFuncoes = useMemo(() => criarServicoFuncoesSistema(requisitar), [requisitar]);
   const podeConsultarFuncoes = podeAcessar("TELA_USUARIOS");
-  const funcoes = usarRecursoApi(servico.listarFuncoes, podeConsultarFuncoes);
+  const funcoes = usarRecursoApi(servicoFuncoes.listar, podeConsultarFuncoes);
   const podeTrocarFuncao = podeConsultarFuncoes && funcoes.dados !== null && !funcoes.carregando && !funcoes.erro;
   const [formulario, definirFormulario] = useState({ name: usuario.name, phone: usuario.phone, ativo: usuario.ativo, funcaoId: usuario.funcaoId ?? "" });
   const [erros, definirErros] = useState({});
@@ -75,7 +77,7 @@ export function CamposEdicaoUsuario({ user: usuario, service: servico, onClose: 
 export default function FormularioEdicaoUsuario({ userId: id, service: servico, onClose: aoFechar, onSave: aoSalvar }) {
   const carregar = useCallback((signal) => servico.buscar(id, signal), [id, servico]);
   const { dados, carregando, erro, recarregar } = usarRecursoApi(carregar);
-  if (dados && !carregando && !erro) return <CamposEdicaoUsuario key={dados.id} user={dados} service={servico} onClose={aoFechar} onSave={aoSalvar} />;
+  if (dados && !carregando && !erro) return <CamposEdicaoUsuario key={dados.id} user={dados} onClose={aoFechar} onSave={aoSalvar} />;
   return (
     <Modal title="Editar usuário" onClose={aoFechar} footer={<Botao variant="outline" onClick={aoFechar}>Fechar</Botao>}>
       {carregando && <p role="status" className="py-6 text-center text-muted">Carregando os dados atuais do usuário...</p>}

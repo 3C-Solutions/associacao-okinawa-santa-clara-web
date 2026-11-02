@@ -1,5 +1,5 @@
 import InicioAutenticado from "@/pages/AuthenticatedHome/AuthenticatedHome.jsx";
-import TelaEmBreve from "./screens/PendingIntegration/PendingIntegration.jsx";
+import FuncoesSistema from "./screens/SystemRoles/SystemRoles.jsx";
 import AssociadosAdmin from "./screens/Associates/admin/AdminAssociates.jsx";
 
 // Cada tela deve declarar uma permissão ou ser explicitamente comum à sessão autenticada.
@@ -8,7 +8,7 @@ export const NAVEGACAO_PAINEL = [
   {
     id: "registrations", label: "Cadastros", icon: "folder", children: [
       { id: "users", label: "Usuários", icon: "person", permissao: "TELA_USUARIOS", componente: AssociadosAdmin },
-      { id: "system-roles", label: "Funções do sistema", icon: "settings", permissao: "TELA_FUNCOES_SISTEMA", componente: TelaEmBreve, emBreve: true },
+      { id: "system-roles", label: "Funções do sistema", icon: "settings", permissao: "TELA_FUNCOES_SISTEMA", componente: FuncoesSistema },
     ],
   },
 ];
