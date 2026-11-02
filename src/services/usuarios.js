@@ -48,8 +48,6 @@ export function criarServicoUsuarios(requisitar) {
   return {
     listar: async (signal) => {
       const dados = await requisitar("/usuarios", { signal });
-      // O contrato atual do back devolve null quando a lista está vazia.
-      if (dados === null) return [];
       if (!Array.isArray(dados)) throw contratoInvalido();
       return dados.map(normalizarUsuario);
     },
