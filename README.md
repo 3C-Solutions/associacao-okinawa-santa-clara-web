@@ -45,6 +45,21 @@ Após o login, o painel reaproveita o layout anterior com sidebar, cabeçalho e 
 mobile, utilizando nome, e-mail e função retornados por `/auth/me`. O Início está disponível
 a toda conta autenticada. O catálogo do painel libera Usuários com `TELA_USUARIOS` e
 Funções do sistema com `TELA_FUNCOES_SISTEMA`, inclusive pelos atalhos do Início.
+O menu permanece fixo no front, com as entradas adicionais abaixo. Cada entrada aparece
+somente quando `/auth/me` retorna o código correspondente na lista de permissões.
+
+| Tela | Código | Localização |
+| --- | --- | --- |
+| Financeiro | `TELA_FINANCEIRO` | Menu principal |
+| Agenda | `TELA_AGENDA` | Menu principal |
+| Notícias | `TELA_NOTICIAS` | Menu principal |
+| Departamentos | `TELA_DEPARTAMENTOS` | Cadastros |
+
+Essas quatro entradas estão disponíveis na sidebar, na navegação mobile e nos atalhos
+do Início, e abrem a página Em breve até a integração de seus módulos. Os protótipos
+originais permanecem preservados. Usuários continua em Cadastros e Funções do sistema
+em Administração do Sistema, com as telas já integradas.
+
 Usuários abre a tela original adaptada para consultar `GET /usuarios` e `GET /usuarios/{id}`.
 O back retorna `[]` quando a listagem de usuários está vazia; o front utiliza esse contrato.
 Busca, filtros de função e exportação CSV utilizam os dados reais retornados pela API.
@@ -68,6 +83,9 @@ O cadastro de novas funções continua exigindo pelo menos uma funcionalidade.
 O formulário preserva a seleção quando o envio falha e permite recarregar os dados.
 As alterações atingem todos os usuários da função. Ao editar a própria função, o front
 força a atualização de `/auth/me`; se a permissão administrativa for retirada, volta ao Início.
+Durante essa consulta, o menu exibe um indicador animado com "Atualizando seus acessos...",
+tanto no desktop quanto no mobile. O aviso desaparece quando a consulta termina e o menu
+reflete as permissões recebidas. A confirmação da edição da própria função aguarda essa atualização.
 Outras sessões atualizam a navegação ao voltar à aba ou após uma resposta `403`.
 Exclusão de funções fica para uma próxima etapa.
 Grupos sem destinos autorizados são ocultados. Se a permissão da tela aberta for revogada,

@@ -5,7 +5,7 @@ import GrupoNavegacao from "./components/NavGroup.jsx";
 import { NAVEGACAO_PAINEL, filtrarNavegacao, listarTelas, resolverTela } from "./navigation.js";
 
 export default function Painel({ onLogout: aoSair }) {
-  const { usuario, status, podeAcessar } = usarAutenticacao();
+  const { usuario, status, podeAcessar, atualizando } = usarAutenticacao();
   const [tela, definirTela] = useState("home");
   const [menuAberto, definirMenuAberto] = useState(false);
   const navegacao = filtrarNavegacao(NAVEGACAO_PAINEL, podeAcessar);
@@ -45,6 +45,12 @@ export default function Painel({ onLogout: aoSair }) {
   );
   const Tela = atual.componente;
   const primeiroNome = usuario.nome.trim().split(/\s+/)[0] || usuario.nome;
+  const avisoAtualizacao = (
+    <p role="status" className="mb-3 flex items-center gap-2 rounded-lg bg-brand-soft px-3 py-2 text-sm text-brand">
+      <span aria-hidden="true" className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none" />
+      Atualizando seus acessos...
+    </p>
+  );
 
   return (
     <div className="min-h-dvh bg-canvas text-ink lg:flex">
@@ -67,7 +73,8 @@ export default function Painel({ onLogout: aoSair }) {
         )}
         <div className="hidden overflow-y-auto px-4 lg:block">
           <div className="mb-5">{CartaoUsuario}</div>
-          <nav className="space-y-1" aria-label="Área logada">
+          {atualizando && avisoAtualizacao}
+          <nav className="space-y-1" aria-label="Área logada" aria-busy={atualizando}>
             {navegacao.map((item) => item.children ? (
               <GrupoNavegacao key={item.id} item={item} screen={telaAtiva} onNavigate={navegar} />
             ) : (
@@ -80,7 +87,8 @@ export default function Painel({ onLogout: aoSair }) {
         </div>
       </aside>
       <div className="min-w-0 flex-1 lg:ml-sidebar">
-        <nav aria-label="Navegação mobile" className="flex gap-2 overflow-x-auto border-b border-divider bg-white px-4 py-2 lg:hidden">
+        {atualizando && <div className="px-4 pt-3 lg:hidden">{avisoAtualizacao}</div>}
+        <nav aria-label="Navegação mobile" aria-busy={atualizando} className="flex gap-2 overflow-x-auto border-b border-divider bg-white px-4 py-2 lg:hidden">
           {telas.map((item) => <button key={item.id} type="button" onClick={() => navegar(item.id)} aria-current={telaAtiva === item.id ? "page" : undefined} className={`min-h-11 shrink-0 rounded-full px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand ${telaAtiva === item.id ? "bg-brand text-white" : "bg-brand-soft text-brand"}`}>{item.label}</button>)}
         </nav>
         <main id="conteudo-painel" tabIndex={-1} className="mx-auto max-w-dashboard p-4 focus:outline-none md:p-8">
