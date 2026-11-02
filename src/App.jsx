@@ -4,11 +4,11 @@ import { ProvedorAutenticacao, usarAutenticacao } from "@/auth/AuthProvider.jsx"
 import { Botao, Cartao, Titulo } from "@/components/ui";
 import SitePublico from "@/pages/PublicSite/PublicSite.jsx";
 import Acesso from "@/pages/Login/Login.jsx";
-import InicioAutenticado from "@/pages/AuthenticatedHome/AuthenticatedHome.jsx";
+import Painel from "@/pages/Dashboard/Dashboard.jsx";
 
 function Conteudo() {
   const [visualizacao, definirVisualizacao] = useState("public");
-  const { status, erro, aviso, sair, tentarNovamente, limparAviso } = usarAutenticacao();
+  const { usuario, status, erro, aviso, sair, tentarNovamente, limparAviso } = usarAutenticacao();
   const encerrar = () => { definirVisualizacao("login"); sair(); };
 
   if (["restaurando", "carregando"].includes(status) || status === "erro") {
@@ -25,7 +25,7 @@ function Conteudo() {
       </main>
     );
   }
-  if (status === "autenticado") return <InicioAutenticado onLogout={encerrar} />;
+  if (status === "autenticado") return <Painel key={usuario.id} onLogout={encerrar} />;
   if (visualizacao === "login" || aviso || status === "autenticando") {
     return <Acesso onBack={() => { sair(); limparAviso(); definirVisualizacao("public"); }} />;
   }
