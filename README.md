@@ -56,9 +56,22 @@ somente quando `/auth/me` retorna o código correspondente na lista de permissõ
 | Departamentos | `TELA_DEPARTAMENTOS` | Cadastros |
 
 Essas quatro entradas estão disponíveis na sidebar, na navegação mobile e nos atalhos
-do Início, e abrem a página Em breve até a integração de seus módulos. Os protótipos
-originais permanecem preservados. Usuários continua em Cadastros e Funções do sistema
+do Início, e abrem os protótipos originais na visualização administrativa de demonstração.
+Os atalhos exibem a indicação Protótipo; as telas possuem um aviso de dados de demonstração.
+As ações de criar, editar, excluir, aprovar e filtrar nesses módulos utilizam somente dados locais.
+O acesso continua sendo liberado pelas permissões reais, independentemente do nome da função.
+Usuários continua em Cadastros e Funções do sistema
 em Administração do Sistema, com as telas já integradas.
+
+Os quatro protótipos compartilham um armazenamento próprio do painel, separado por usuário
+autenticado (`okinawa-sc-painel-prototipo:<id>`). As alterações persistem neste navegador
+ao trocar de tela, sair e entrar novamente ou recarregar a página. A troca de usuário
+reinicia o contexto em memória e carrega somente os dados locais daquela conta.
+O site público mantém sua chave anterior `okinawa-sc-v2`, sem migrar ou apagar os dados salvos.
+Se o armazenamento local estiver indisponível, os protótipos funcionam em memória.
+O nome e a função exibidos no cabeçalho continuam sendo os da conta autenticada.
+O papel `admin` usado internamente nos protótipos não altera a função nem as permissões reais.
+Os formulários de Família e Configurações preservam o preenchimento de endereço via ViaCEP.
 
 Usuários abre a tela original adaptada para consultar `GET /usuarios` e `GET /usuarios/{id}`.
 O back retorna `[]` quando a listagem de usuários está vazia; o front utiliza esse contrato.
@@ -104,7 +117,8 @@ Campos somente leitura ou desabilitados possuem fundo cinza; os editáveis perma
 
 Cadastro e exclusão permanecem indisponíveis. Os formulários anteriores de cadastro e
 os outros módulos do protótipo continuam preservados para as próximas integrações.
-O painel autenticado não consome perfis, indicadores ou notificações de demonstração.
+Usuários e Funções do sistema utilizam dados reais da API; os quatro módulos identificados
+como protótipos utilizam os perfis, indicadores e notificações locais de demonstração.
 O armazenamento do site público permanece independente da sessão real.
 Permissões são comparadas pelo código exato, independentemente do nome da função
 ou do prefixo do código. Recuperação de senha depende de atendimento da administração.

@@ -26,7 +26,7 @@ export default function InicioAutenticado({ screens: telas = [], navigate: naveg
                   {funcionalidades.map((item) => (
                     <li key={item.id}>
                       <button type="button" onClick={() => navegar(item.id)} className="flex min-h-16 w-full items-center gap-3 rounded-xl bg-brand-soft p-4 text-left text-brand transition hover:bg-brand-soft-strong focus:outline-none focus:ring-2 focus:ring-brand">
-                        <Icone name={item.icon} /><span className="font-semibold">{item.label}</span>{item.emBreve && <span className="ml-auto text-xs">Em breve</span>}
+                        <Icone name={item.icon} /><span className="font-semibold">{item.label}</span>{item.prototipo ? <span className="ml-auto text-xs">Protótipo</span> : item.emBreve && <span className="ml-auto text-xs">Em breve</span>}
                       </button>
                     </li>
                   ))}

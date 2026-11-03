@@ -27,9 +27,9 @@ function migrar(dadosIniciais, salvo) {
   return { ...dadosIniciais, ...salvo, v: dadosIniciais.v, departments: departamentos, profiles: perfis, passwords: { ...dadosIniciais.passwords, ...salvo.passwords }, associates: associados, families: salvo.families || dadosIniciais.families };
 }
 
-function carregar() {
+function carregar(chaveArmazenamento) {
   try {
-    const bruto = localStorage.getItem(CHAVE_ARMAZENAMENTO);
+    const bruto = localStorage.getItem(chaveArmazenamento);
     if (bruto) return migrar(criarDadosIniciais(), JSON.parse(bruto));
   } catch {
     /* localStorage indisponível: usa dados de exemplo */
@@ -96,18 +96,23 @@ function redutor(dadosAplicacao, acao) {
   }
 }
 
-export function ProvedorArmazenamento({ children: filhos }) {
-  const [dadosAplicacao, despachar] = useReducer(redutor, undefined, carregar);
+export function ProvedorArmazenamento({ children: filhos, storageKey: chaveArmazenamento = CHAVE_ARMAZENAMENTO }) {
+  // A troca da chave reinicia também os componentes filhos, isolando contas e seus rascunhos.
+  return <ArmazenamentoLocal key={chaveArmazenamento} storageKey={chaveArmazenamento}>{filhos}</ArmazenamentoLocal>;
+}
+
+function ArmazenamentoLocal({ children: filhos, storageKey: chaveArmazenamento }) {
+  const [dadosAplicacao, despachar] = useReducer(redutor, chaveArmazenamento, carregar);
   const [avisos, definirAvisos] = useState([]);
   const [estadoConfirmacao, definirEstadoConfirmacao] = useState(null);
 
   useEffect(() => {
     try {
-      localStorage.setItem(CHAVE_ARMAZENAMENTO, JSON.stringify(dadosAplicacao));
+      localStorage.setItem(chaveArmazenamento, JSON.stringify(dadosAplicacao));
     } catch {
       /* ignora: armazenamento cheio ou bloqueado */
     }
-  }, [dadosAplicacao]);
+  }, [dadosAplicacao, chaveArmazenamento]);
 
   const aviso = useCallback((mensagem, tom = "success") => {
     const identificador = identificadorUnico();

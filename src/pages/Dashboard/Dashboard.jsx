@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { Botao, Icone, Titulo } from "@/components/ui";
 import GrupoNavegacao from "./components/NavGroup.jsx";
+import TelaPrototipo from "./screens/Prototype/PrototypeScreen.jsx";
 import { NAVEGACAO_PAINEL, filtrarNavegacao, listarTelas, resolverTela } from "./navigation.js";
 
 export default function Painel({ onLogout: aoSair }) {
@@ -96,7 +97,9 @@ export default function Painel({ onLogout: aoSair }) {
             <p className="mb-1 text-sm font-semibold text-brand">{usuario.funcaoSistema.nome}</p>
             <Titulo>{telaAtiva === "home" ? `Bem-vindo, ${primeiroNome}` : atual.label}</Titulo>
           </div>
-          <Tela key={`${usuario.id}-${telaAtiva}`} screen={atual} screens={telas} navigate={navegar} />
+          {atual.prototipo
+            ? <TelaPrototipo key={`${usuario.id}-${telaAtiva}`} screen={atual} navigate={navegar} />
+            : <Tela key={`${usuario.id}-${telaAtiva}`} screen={atual} screens={telas} navigate={navegar} />}
         </main>
       </div>
     </div>
