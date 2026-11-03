@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { mascararCep } from "@/lib/data.js";
-import { Botao, Campo, Modal } from "@/components/ui";
+import { Botao, Campo, CampoCep, Modal } from "@/components/ui";
 
 export default function FormularioFamilia({ family: familia, onClose: aoFechar, onSave: aoSalvar }) {
   const [formulario, definirFormulario] = useState(familia);
   const [erros, definirErros] = useState({});
   const definir = (chave) => (valor) => {
-    const proximo = chave === "cep" ? mascararCep(valor) : chave === "uf" ? valor.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2) : valor;
+    const proximo = chave === "uf" ? valor.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2) : valor;
     definirFormulario((elementoF) => ({ ...elementoF, [chave]: proximo }));
     definirErros((evento) => ({ ...evento, [chave]: undefined }));
   };
@@ -31,7 +30,12 @@ export default function FormularioFamilia({ family: familia, onClose: aoFechar, 
         <Campo label="Bairro" value={formulario.district} onChange={definir("district")} />
         <Campo label="Cidade" value={formulario.city} onChange={definir("city")} />
         <Campo label="UF" value={formulario.uf} onChange={definir("uf")} error={erros.uf} placeholder="SP" />
-        <Campo label="CEP" value={formulario.cep} onChange={definir("cep")} error={erros.cep} placeholder="00000-000" />
+        <CampoCep
+          value={formulario.cep}
+          onChange={definir("cep")}
+          error={erros.cep}
+          onAddressFound={(endereco) => definirFormulario((atual) => ({ ...atual, ...endereco }))}
+        />
       </div>
       <p className="mt-5 rounded-lg bg-brand-soft px-4 py-3 text-xs text-brand">Depois de cadastrar a família, cadastre o associado responsável em Usuários e selecione esta família.</p>
     </Modal>

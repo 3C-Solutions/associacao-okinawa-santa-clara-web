@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { ehEmail, mascararCep, mascararTelefone } from "@/lib/data.js";
+import { ehEmail, mascararTelefone } from "@/lib/data.js";
 import { usarArmazenamento, usarUsuario } from "@/store";
-import { Botao, Cartao, Campo, Icone, Alternador } from "@/components/ui";
+import { Botao, Cartao, Campo, CampoCep, Icone, Alternador } from "@/components/ui";
 import ModalSenha from "./PasswordModal.jsx";
 
 const CHAVES_ENDERECOS = ["address", "number", "complement", "uf", "city", "cep", "district"];
@@ -18,7 +18,7 @@ export default function Configuracoes({ role: papel, account: conta }) {
   const [senha, definirSenhaAcesso] = useState(false);
 
   const definir = (chave) => (valor) => {
-    const mascarado = chave === "phone" ? mascararTelefone(valor) : chave === "cep" ? mascararCep(valor) : chave === "uf" ? valor.toUpperCase().slice(0, 2) : valor;
+    const mascarado = chave === "phone" ? mascararTelefone(valor) : chave === "uf" ? valor.toUpperCase().slice(0, 2) : valor;
     definirFormulario((elementoF) => ({ ...elementoF, [chave]: mascarado }));
     definirErros((evento) => ({ ...evento, [chave]: undefined }));
   };
@@ -57,7 +57,16 @@ export default function Configuracoes({ role: papel, account: conta }) {
         </div>
         <div className="grid gap-5 md:grid-cols-2">
           {camposConta.map(([chave, rotulo, tipo]) => <Campo key={chave} className={chave === "name" ? "md:col-span-2" : ""} label={rotulo} type={tipo} value={formulario[chave]} onChange={definir(chave)} error={erros[chave]} readOnly={!editando} />)}
-          {papel === "member" && camposMembro.map(([chave, rotulo]) => <Campo key={chave} className={chave === "address" ? "md:col-span-2" : ""} label={rotulo} value={formulario[chave] || ""} onChange={definir(chave)} error={erros[chave]} readOnly={!editando} />)}
+          {papel === "member" && camposMembro.map(([chave, rotulo]) => chave === "cep"
+            ? <CampoCep
+                key={chave}
+                value={formulario.cep || ""}
+                onChange={definir("cep")}
+                error={erros.cep}
+                readOnly={!editando}
+                onAddressFound={(endereco) => definirFormulario((atual) => ({ ...atual, ...endereco }))}
+              />
+            : <Campo key={chave} className={chave === "address" ? "md:col-span-2" : ""} label={rotulo} value={formulario[chave] || ""} onChange={definir(chave)} error={erros[chave]} readOnly={!editando} />)}
         </div>
       </Cartao>
 
