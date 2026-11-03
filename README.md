@@ -108,3 +108,26 @@ O painel autenticado não consome perfis, indicadores ou notificações de demon
 O armazenamento do site público permanece independente da sessão real.
 Permissões são comparadas pelo código exato, independentemente do nome da função
 ou do prefixo do código. Recuperação de senha depende de atendimento da administração.
+
+## Financeiro integrado
+
+A tela exige `TELA_FINANCEIRO` e usa os endpoints `/api/financeiro` do backend.
+O resumo mensal compara o mês atual ao anterior; os indicadores e gráficos anuais
+consideram apenas pagamentos confirmados e despesas pagas. Os filtros afetam a
+listagem e seus totais, enquanto os gráficos mantêm o ano corrente.
+
+Novas despesas usam o responsável identificado pelo token no servidor. O formulário
+não envia `fkUsuario`; edições preservam o responsável original. O vínculo com família
+é opcional. A API mantém o campo `dtDepesa` por compatibilidade com o contrato existente.
+Valores aceitam até duas casas decimais; o modal exibe erros e impede envios repetidos.
+
+Verificação local:
+
+```sh
+npm run test:finance
+npm run build
+```
+
+A revisão visual foi feita em 1440 px e 390 px, com dados de teste isolados.
+A interface de pagamentos utiliza os códigos dos cadastros existentes: o backend
+atual ainda não fornece catálogos de departamentos e cobranças para seletores por nome.

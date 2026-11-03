@@ -8,8 +8,8 @@ function adaptarLancamento(lancamento) {
  category: lancamento.categoria,
  type: lancamento.tipo === "ENTRADA" ? "in" : "out",
  amount: Number(lancamento.valor),
- status: /^(pago|confirmado)$/i.test(lancamento.status || "")
- ? "Pago" : lancamento.status,
+ status: /^(pago|confirmado)$/i.test(lancamento.status?.trim() || "")
+ ? "Pago" : lancamento.status?.trim(),
  locked: lancamento.bloqueado,
  fkUsuario: lancamento.fkUsuario,
  fkFamilia: lancamento.fkFamilia,
