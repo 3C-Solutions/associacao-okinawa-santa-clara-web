@@ -25,7 +25,11 @@ function Conteudo() {
       </main>
     );
   }
-  if (status === "autenticado") return <Painel key={usuario.id} onLogout={encerrar} />;
+  if (status === "autenticado") return (
+    <ProvedorArmazenamento key={usuario.id} storageKey={`okinawa-sc-painel-prototipo:${usuario.id}`}>
+      <Painel onLogout={encerrar} />
+    </ProvedorArmazenamento>
+  );
   if (visualizacao === "login" || aviso || status === "autenticando") {
     return <Acesso onBack={() => { sair(); limparAviso(); definirVisualizacao("public"); }} />;
   }
