@@ -55,15 +55,16 @@ somente quando `/auth/me` retorna o código correspondente na lista de permissõ
 | Notícias | `TELA_NOTICIAS` | Menu principal |
 | Departamentos | `TELA_DEPARTAMENTOS` | Cadastros |
 
-Essas quatro entradas estão disponíveis na sidebar, na navegação mobile e nos atalhos
-do Início, e abrem os protótipos originais na visualização administrativa de demonstração.
+As quatro entradas estão disponíveis na sidebar, na navegação mobile e nos atalhos
+do Início. Financeiro utiliza a API real; Agenda, Notícias e Departamentos abrem
+os protótipos originais na visualização administrativa de demonstração.
 Os atalhos exibem a indicação Protótipo; as telas possuem um aviso de dados de demonstração.
 As ações de criar, editar, excluir, aprovar e filtrar nesses módulos utilizam somente dados locais.
 O acesso continua sendo liberado pelas permissões reais, independentemente do nome da função.
 Usuários continua em Cadastros e Funções do sistema
 em Administração do Sistema, com as telas já integradas.
 
-Os quatro protótipos compartilham um armazenamento próprio do painel, separado por usuário
+Os três protótipos compartilham um armazenamento próprio do painel, separado por usuário
 autenticado (`okinawa-sc-painel-prototipo:<id>`). As alterações persistem neste navegador
 ao trocar de tela, sair e entrar novamente ou recarregar a página. A troca de usuário
 reinicia o contexto em memória e carrega somente os dados locais daquela conta.
