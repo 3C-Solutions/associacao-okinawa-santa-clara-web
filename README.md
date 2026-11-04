@@ -116,7 +116,7 @@ Essa atualização força uma nova consulta após o salvamento e descarta respos
 consultas anteriores, evitando restaurar permissões desatualizadas na sessão.
 Campos somente leitura ou desabilitados possuem fundo cinza; os editáveis permanecem brancos.
 
-Cadastro e exclusão permanecem indisponíveis. Os formulários anteriores de cadastro e
+Cadastro e exclusão de usuários permanecem indisponíveis. Os formulários anteriores de cadastro e
 os outros módulos do protótipo continuam preservados para as próximas integrações.
 Usuários e Funções do sistema utilizam dados reais da API; os quatro módulos identificados
 como protótipos utilizam os perfis, indicadores e notificações locais de demonstração.
@@ -146,3 +146,27 @@ npm run build
 A revisão visual foi feita em 1440 px e 390 px, com dados de teste isolados.
 A interface de pagamentos utiliza os códigos dos cadastros existentes: o backend
 atual ainda não fornece catálogos de departamentos e cobranças para seletores por nome.
+## Integração de famílias
+
+Cadastros › Famílias reutiliza a tabela e o formulário existentes, com dados reais via
+Axios autenticado. O menu desktop, mobile e os atalhos do Início exigem `TELA_FAMILIAS`.
+Essa funcionalidade precisa existir no catálogo do banco e estar atribuída à função do
+usuário; o front não concede permissões nem cadastra funcionalidades automaticamente.
+
+- `GET /familias` abastece a listagem; `[]` representa uma lista vazia.
+- `GET /familias/{id}` consulta os dados atuais ao abrir os detalhes.
+- `POST /familias/com-endereco` recebe `{ nome, endereco: { rua, bairro, cidade,
+  numero, uf, cep, complemento } }` e cria família e endereço na mesma transação.
+  Exige apenas `TELA_FAMILIAS`; não faz duas requisições independentes de cadastro.
+
+Busca e ordenação utilizam sobrenome e endereço da API. A tela apresenta carregamento,
+lista vazia e erro com nova tentativa. O formulário mantém os dados quando o envio
+falha, bloqueia envios simultâneos e mostra “Salvando...”. O ViaCEP continua preenchendo
+o endereço; a digitação manual permanece disponível quando a consulta não funciona.
+Após o cadastro confirmado, a nova família aparece na tabela e volta a ser consultada
+no servidor ao reabrir a tela. Os dados reais não são gravados no armazenamento mockado.
+
+Responsável e membros aparecem como “Não disponível”, pois a API ainda não fornece
+a composição familiar. Edição e exclusão permanecem desabilitadas nesta etapa.
+O formulário compartilhado continua atendendo ao protótipo de cadastro de usuários,
+que ainda não foi habilitado no painel real.

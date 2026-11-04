@@ -1,63 +1,70 @@
 import { useMemo, useState } from "react";
-import { associadoDaFamilia, rotuloFamilia, formatarEndereco } from "@/lib/people.js";
-import { usarArmazenamento } from "@/store";
-import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca } from "@/components/ui";
+import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
+import { usarRecursoApi } from "@/hooks/useApiResource.js";
+import { criarServicoFamilias } from "@/services/familias.js";
+import { rotuloFamilia, formatarEndereco } from "@/lib/people.js";
+import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, Cartao } from "@/components/ui";
 import DetalhesFamilia from "./FamilyDetails.jsx";
-import FormularioFamilia, { NOVA_FAMILIA } from "./FamilyForm.jsx";
+import FormularioFamilia from "./FamilyForm.jsx";
 
-// ---------- Diretoria ----------
-// Primeiro passo do cadastro: a família (sobrenome + endereço). O associado responsável só pode ser cadastrado depois, escolhendo uma família.
 export default function Familias() {
-  const { state: dadosAplicacao, save: salvar, remove: remover, toast: aviso, confirm: confirmar } = usarArmazenamento();
+  const { requisitar, podeAcessar } = usarAutenticacao();
+  const permitido = podeAcessar("TELA_FAMILIAS");
+  const servico = useMemo(() => criarServicoFamilias(requisitar), [requisitar]);
+  const recurso = usarRecursoApi(servico.listar, permitido);
+  const familias = recurso.dados || [];
   const [consulta, definirConsulta] = useState("");
-  const [editando, definirEditando] = useState(null);
+  const [cadastrando, definirCadastrando] = useState(false);
   const [visualizando, definirVisualizando] = useState(null);
+  const [mensagem, definirMensagem] = useState(null);
 
   const linhas = useMemo(() => {
-    const termo = consulta.trim().toLowerCase();
-    return dadosAplicacao.families
-      .map((elementoF) => {
-        const associado = associadoDaFamilia(dadosAplicacao, elementoF.id);
-        return { ...elementoF, label: rotuloFamilia(elementoF), addressText: formatarEndereco(elementoF), associate: associado, members: associado ? 1 + associado.dependents.length : 0 };
-      })
-      .filter((elementoF) => !termo || `${elementoF.surname} ${elementoF.addressText} ${elementoF.associate?.name || ""}`.toLowerCase().includes(termo))
-      .sort((elementoA, elementoB) => elementoA.surname.localeCompare(elementoB.surname));
-  }, [dadosAplicacao, consulta]);
+    const termo = consulta.trim().toLocaleLowerCase("pt-BR");
+    return familias.map((familia) => ({ ...familia, label: rotuloFamilia(familia), addressText: formatarEndereco(familia) }))
+      .filter((familia) => !termo || `${familia.surname} ${familia.addressText}`.toLocaleLowerCase("pt-BR").includes(termo))
+      .sort((a, b) => a.surname.localeCompare(b.surname, "pt-BR") || a.id - b.id);
+  }, [familias, consulta]);
 
-  const excluir = (elementoF) => {
-    if (elementoF.members > 0) { aviso("Esta família ainda tem membros. Exclua o associado responsável antes de excluir a família.", "error"); return; }
-    if (Object.values(dadosAplicacao.profiles).some((perfil) => perfil.familyId === elementoF.id)) { aviso("Esta família está vinculada a um usuário. Altere o vínculo antes de excluí-la.", "error"); return; }
-    confirmar({ title: "Excluir família", message: `Excluir a ${elementoF.label}? Essa ação não pode ser desfeita.`, onConfirm: () => { remover("families", elementoF.id); aviso("Família excluída"); } });
+  const cadastrar = async (formulario, signal) => {
+    const familia = await servico.cadastrar(formulario, signal);
+    if (signal.aborted) return;
+    recurso.atualizarDados((lista) => [...(lista || []).filter((item) => item.id !== familia.id), familia]);
+    definirConsulta("");
+    definirCadastrando(false);
+    definirMensagem("Família cadastrada com sucesso.");
   };
 
   const colunas = [
-    { key: "label", label: "Família", render: (elementoF) => <span className="font-semibold">{elementoF.label}</span> },
-    { key: "addressText", label: "Endereço", render: (elementoF) => <span className="text-muted">{elementoF.addressText || "—"}</span> },
-    { key: "associate", label: "Associado responsável", render: (elementoF) => (elementoF.associate ? elementoF.associate.name : <span className="text-muted">Sem responsável</span>) },
-    { key: "members", label: "Membros" },
+    { key: "label", label: "Família", render: (familia) => <span className="font-semibold">{familia.label}</span> },
+    { key: "addressText", label: "Endereço", render: (familia) => <span className="text-muted">{familia.addressText || "—"}</span> },
+    { key: "associate", label: "Associado responsável", render: () => <span className="text-muted">Não disponível</span> },
+    { key: "members", label: "Membros", render: () => <span className="text-muted">Não disponível</span> },
   ];
 
+  if (!permitido) return null;
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy={recurso.carregando}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <EntradaBusca value={consulta} onChange={definirConsulta} placeholder="Buscar por sobrenome ou endereço" className="flex-1 sm:max-w-md" />
-        <Botao onClick={() => definirEditando(NOVA_FAMILIA)}><Icone name="plus" size={18} /> Nova família</Botao>
+        <Botao disabled={recurso.carregando || !!recurso.erro} onClick={() => { definirMensagem(null); definirCadastrando(true); }}><Icone name="plus" size={18} /> Nova família</Botao>
       </div>
-      <p className="text-sm text-muted">{linhas.length} {linhas.length === 1 ? "família encontrada" : "famílias encontradas"}.</p>
-      <TabelaDados
-        columns={colunas}
-        rows={linhas}
-        empty={<EstadoVazio icon="groups" title="Nenhuma família encontrada">Cadastre a família primeiro: depois é possível cadastrar o associado responsável nela.</EstadoVazio>}
-        actions={(elementoF) => (
-          <>
-            <BotaoIcone icon="eye" label={`Ver ${elementoF.label}`} size="sm" onClick={() => definirVisualizando(elementoF)} />
-            <BotaoIcone icon="edit" label={`Editar ${elementoF.label}`} size="sm" onClick={() => definirEditando(elementoF)} />
-            <BotaoIcone icon="trash" label={`Excluir ${elementoF.label}`} tone="danger" size="sm" onClick={() => excluir(elementoF)} />
-          </>
-        )}
-      />
-      {editando && <FormularioFamilia family={editando} onClose={() => definirEditando(null)} onSave={(elementoF) => { salvar("families", elementoF); aviso(elementoF.id ? "Família atualizada" : "Família cadastrada"); definirEditando(null); }} />}
-      {visualizando && <DetalhesFamilia family={dadosAplicacao.families.find((elementoF) => elementoF.id === visualizando.id) || visualizando} onClose={() => definirVisualizando(null)} onEdit={() => { definirEditando(dadosAplicacao.families.find((elementoF) => elementoF.id === visualizando.id)); definirVisualizando(null); }} />}
+      <p className="text-sm text-muted">Edição, exclusão e composição familiar estarão disponíveis em uma próxima etapa.</p>
+      {mensagem && <p role="status" className="rounded-lg bg-success-soft px-4 py-3 text-sm text-success">{mensagem}</p>}
+      {recurso.carregando ? <Cartao className="p-8"><p role="status" className="text-center text-muted">Carregando famílias...</p></Cartao> : recurso.erro ? (
+        <Cartao className="space-y-4 p-6"><p role="alert" className="text-sm text-danger">{recurso.erro}</p><Botao variant="outline" onClick={recurso.recarregar}>Tentar novamente</Botao></Cartao>
+      ) : <>
+        <p className="text-sm text-muted">{linhas.length} {linhas.length === 1 ? "família encontrada" : "famílias encontradas"}.</p>
+        <TabelaDados columns={colunas} rows={linhas}
+          empty={<EstadoVazio icon="groups" title="Nenhuma família encontrada">{familias.length ? "Ajuste a busca para encontrar uma família." : "Cadastre a primeira família para começar."}</EstadoVazio>}
+          actions={(familia) => <>
+            <BotaoIcone icon="eye" label={`Ver ${familia.label}`} size="sm" onClick={() => definirVisualizando(familia)} />
+            <BotaoIcone icon="edit" label={`Editar ${familia.label} (em breve)`} size="sm" disabled />
+            <BotaoIcone icon="trash" label={`Excluir ${familia.label} (em breve)`} tone="danger" size="sm" disabled />
+          </>}
+        />
+      </>}
+      {cadastrando && <FormularioFamilia onClose={() => definirCadastrando(false)} onSave={cadastrar} hint="A família e seu endereço serão cadastrados juntos. O cadastro de usuários será disponibilizado em uma próxima etapa." />}
+      {visualizando && <DetalhesFamilia key={visualizando.id} family={visualizando} service={servico} onClose={() => definirVisualizando(null)} />}
     </div>
   );
 }

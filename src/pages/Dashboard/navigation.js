@@ -4,6 +4,7 @@ import AssociadosAdmin from "./screens/Associates/admin/AdminAssociates.jsx";
 import Agenda from "./screens/Agenda/Agenda.jsx";
 import Noticias from "./screens/News/News.jsx";
 import Departamentos from "./screens/Departments/Departments.jsx";
+import Familias from "./screens/Families/Families.jsx";
 import Financas from "./screens/Finance/Finance.jsx";
 // Cada tela deve declarar uma permissão ou ser explicitamente comum à sessão autenticada.
 export const NAVEGACAO_PAINEL = [
@@ -14,6 +15,7 @@ export const NAVEGACAO_PAINEL = [
  {
  id: "registrations", label: "Cadastros", icon: "folder", children: [
  { id: "users", label: "Usuários", icon: "person", permissao: "TELA_USUARIOS", componente: AssociadosAdmin },
+ { id: "families", label: "Famílias", icon: "groups", permissao: "TELA_FAMILIAS", componente: Familias },
  { id: "departments", label: "Departamentos", icon: "groups", permissao: "TELA_DEPARTAMENTOS", componente: Departamentos, prototipo: true },
  ],
  },
