@@ -6,6 +6,7 @@ import Noticias from "./screens/News/News.jsx";
 import Departamentos from "./screens/Departments/Departments.jsx";
 import Familias from "./screens/Families/Families.jsx";
 import Financas from "./screens/Finance/Finance.jsx";
+import Configuracoes from "./screens/Settings/Settings.jsx";
 // Cada tela deve declarar uma permissão ou ser explicitamente comum à sessão autenticada.
 export const NAVEGACAO_PAINEL = [
  { id: "home", label: "Início", icon: "home", comum: true, componente: InicioAutenticado },
@@ -24,6 +25,7 @@ export const NAVEGACAO_PAINEL = [
  { id: "system-roles", label: "Funções do sistema", icon: "settings", permissao: "TELA_FUNCOES_SISTEMA", componente: FuncoesSistema },
  ],
  },
+ { id: "settings", label: "Configurações", icon: "settings", comum: true, componente: Configuracoes },
 ];
 export function filtrarNavegacao(itens, podeAcessar) {
  return itens.flatMap((item) => {

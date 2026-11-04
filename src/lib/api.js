@@ -1,10 +1,11 @@
 import axios from "axios";
 
 export class ErroApi extends Error {
-  constructor(status, mensagem) {
+  constructor(status, mensagem, codigo = null) {
     super(mensagem);
     this.name = "ErroApi";
     this.status = status;
+    this.codigo = codigo;
   }
 }
 
@@ -39,7 +40,14 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
         ...opcoes, url: caminho, headers: cabecalhos, signal,
         ...(body !== undefined ? { data: body } : {}),
       });
-      if (resposta.status < 200 || resposta.status >= 300) throw new ErroApi(resposta.status, mensagens[resposta.status] || "O serviço está indisponível. Tente novamente em instantes.");
+      if (resposta.status < 200 || resposta.status >= 300) {
+        let codigo = null;
+        try {
+          const dadosErro = JSON.parse(resposta.data);
+          if (typeof dadosErro?.codigo === "string") codigo = dadosErro.codigo;
+        } catch { /* Proxies podem devolver um corpo sem JSON. */ }
+        throw new ErroApi(resposta.status, mensagens[resposta.status] || "O serviço está indisponível. Tente novamente em instantes.", codigo);
+      }
       const texto = resposta.data;
       if (!texto) return null;
       try { return JSON.parse(texto); }
