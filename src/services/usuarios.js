@@ -1,4 +1,5 @@
 import { ErroApi } from "../lib/api.js";
+import { ehDataPassada, ehEmail } from "../lib/data.js";
 import { normalizarFuncaoSistema } from "./funcoesSistema.js";
 
 const idValido = (id) => Number.isInteger(id) && id > 0;
@@ -44,6 +45,35 @@ export function montarAtualizacao(usuario, formulario, podeAlterarFuncao) {
   return { nome, telefone: formulario.phone.trim() || null, ativo: formulario.ativo, idFuncaoSistema };
 }
 
+export function validarCadastroUsuario(formulario) {
+  const erros = {};
+  const nome = (formulario.name || "").trim();
+  const telefone = (formulario.phone || "").trim();
+  if (nome.length < 3) erros.name = "Informe o nome completo.";
+  if (!ehEmail((formulario.email || "").trim())) erros.email = "Informe um e-mail válido.";
+  if (telefone.replace(/\D/g, "").length < 10) erros.phone = "Informe um telefone com DDD.";
+  else if (telefone.length > 20) erros.phone = "O telefone deve ter no máximo 20 caracteres.";
+  if (!formulario.birthDate) erros.birthDate = "Informe a data de nascimento.";
+  else if (!/^\d{4}-\d{2}-\d{2}$/.test(formulario.birthDate) || !ehDataPassada(formulario.birthDate)) erros.birthDate = "Informe uma data de nascimento válida e anterior a hoje.";
+  if (!idValido(Number(formulario.familyId))) erros.familyId = "Selecione a família.";
+  if (!idValido(Number(formulario.funcaoId))) erros.funcaoId = "Selecione a função do sistema.";
+  return erros;
+}
+
+export function montarCadastro(formulario) {
+  const erros = validarCadastroUsuario(formulario);
+  if (Object.keys(erros).length) throw new ErroApi(400, Object.values(erros)[0]);
+  const [ano, mes, dia] = formulario.birthDate.split("-");
+  return {
+    idFamilia: Number(formulario.familyId),
+    nome: formulario.name.trim(),
+    email: formulario.email.trim().toLowerCase(),
+    telefone: formulario.phone.trim(),
+    dataNascimento: `${dia}/${mes}/${ano}`,
+    idFuncaoSistema: Number(formulario.funcaoId),
+  };
+}
+
 export function criarServicoUsuarios(requisitar) {
   return {
     listar: async (signal) => {
@@ -63,6 +93,14 @@ export function criarServicoUsuarios(requisitar) {
       const atualizado = normalizarUsuario(await requisitar(`/usuarios/${usuario.id}`, { method: "PUT", body, signal }));
       if (atualizado.id !== usuario.id) throw contratoInvalido();
       return atualizado;
+    },
+    cadastrar: async (formulario, signal) => normalizarUsuario(await requisitar("/usuarios", {
+      method: "POST", body: montarCadastro(formulario), signal,
+    })),
+    // Exclusão lógica: o back-end inativa o usuário e mantém o registro.
+    excluir: async (id, signal) => {
+      if (!idValido(id)) throw contratoInvalido();
+      await requisitar(`/usuarios/${id}`, { method: "DELETE", signal });
     },
   };
 }

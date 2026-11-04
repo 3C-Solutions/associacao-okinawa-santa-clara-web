@@ -6,6 +6,8 @@ import { baixarCsv, hojeISO, mascararTelefone } from "@/lib/data.js";
 import { Selo, Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, Cartao } from "@/components/ui";
 import DetalhesUsuario from "./UserDetails.jsx";
 import FormularioEdicaoUsuario from "./UserEditForm.jsx";
+import FormularioCadastroUsuario from "./UserCreateForm.jsx";
+import ConfirmacaoExclusaoUsuario from "./UserDeleteConfirm.jsx";
 
 export default function AssociadosAdmin() {
   const { usuario: autenticado, requisitar, atualizarContexto, podeAcessar } = usarAutenticacao();
@@ -17,6 +19,8 @@ export default function AssociadosAdmin() {
   const [editando, definirEditando] = useState(null);
   const [visualizando, definirVisualizando] = useState(null);
   const [mensagem, definirMensagem] = useState(null);
+  const [cadastrando, definirCadastrando] = useState(false);
+  const [excluindo, definirExcluindo] = useState(null);
 
   const funcoes = useMemo(() => {
     const grupos = new Map();
@@ -47,6 +51,22 @@ export default function AssociadosAdmin() {
     if (atualizado.id === autenticado.id) await atualizarContexto({ forcar: true });
   };
 
+  const cadastrar = async (formulario, signal) => {
+    const novo = await servico.cadastrar(formulario, signal);
+    if (signal.aborted) return;
+    recurso.atualizarDados((lista) => [...(lista || []).filter((item) => item.id !== novo.id), novo]);
+    definirCadastrando(false);
+    definirMensagem(`Usuário ${novo.name} cadastrado. A senha provisória foi enviada para ${novo.email}.`);
+  };
+
+  const excluir = async (usuario, signal) => {
+    await servico.excluir(usuario.id, signal);
+    if (signal.aborted) return;
+    recurso.atualizarDados((lista) => (lista || []).map((item) => item.id === usuario.id ? { ...item, ativo: false } : item));
+    definirExcluindo(null);
+    definirMensagem(`Usuário ${usuario.name} excluído (inativado).`);
+  };
+
   const exportarCsv = () => {
     const celula = (valor) => /^[\s]*[=+\-@]/.test(String(valor || "")) ? `'${valor}` : valor;
     baixarCsv(`usuarios-${hojeISO()}.csv`, ["Nome", "Função", "E-mail", "Telefone", "Família", "Vínculo", "Departamentos", "Situação"],
@@ -75,10 +95,10 @@ export default function AssociadosAdmin() {
         </div>
         <div className="flex gap-2">
           <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length || recurso.carregando || !!recurso.erro}><Icone name="download" size={18} /> Exportar</Botao>
-          <Botao disabled><Icone name="plus" size={18} /> Novo usuário</Botao>
+          <Botao onClick={() => { definirMensagem(null); definirCadastrando(true); }} disabled={recurso.carregando || !!recurso.erro}><Icone name="plus" size={18} /> Novo usuário</Botao>
         </div>
       </div>
-      <p className="text-sm text-muted">Cadastro, exclusão e vínculos com departamentos estarão disponíveis em uma próxima etapa.</p>
+      <p className="text-sm text-muted">Vínculos com departamentos estarão disponíveis em uma próxima etapa.</p>
       {mensagem && <p role="status" className="rounded-lg bg-success-soft px-4 py-3 text-sm text-success">{mensagem}</p>}
       {recurso.carregando ? <Cartao className="p-8"><p role="status" className="text-center text-muted">Carregando usuários...</p></Cartao> : recurso.erro ? (
         <Cartao className="space-y-4 p-6"><p role="alert" className="text-sm text-danger">{recurso.erro}</p><Botao variant="outline" onClick={recurso.recarregar}>Tentar novamente</Botao></Cartao>
@@ -90,12 +110,14 @@ export default function AssociadosAdmin() {
             actions={(usuario) => <>
               <BotaoIcone icon="eye" label={`Ver detalhes de ${usuario.name}`} size="sm" onClick={() => { definirMensagem(null); definirVisualizando(usuario); }} />
               <BotaoIcone icon="edit" label={`Editar ${usuario.name}`} size="sm" onClick={() => { definirMensagem(null); definirEditando(usuario.id); }} />
-              <BotaoIcone icon="trash" label={`Excluir ${usuario.name} (em breve)`} tone="danger" size="sm" disabled />
+              <BotaoIcone icon="trash" label={usuario.id === autenticado.id ? "Não é possível excluir a própria conta" : !usuario.ativo ? `${usuario.name} já está inativo` : `Excluir ${usuario.name}`} tone="danger" size="sm" disabled={usuario.id === autenticado.id || !usuario.ativo} onClick={() => { definirMensagem(null); definirExcluindo(usuario); }} />
             </>}
           />
         </>
       )}
       {visualizando && <DetalhesUsuario key={visualizando.id} user={visualizando} service={servico} onClose={() => definirVisualizando(null)} onEdit={(usuario) => { definirVisualizando(null); definirEditando(usuario.id); }} />}
+      {cadastrando && <FormularioCadastroUsuario onClose={() => definirCadastrando(false)} onSave={cadastrar} />}
+      {excluindo && <ConfirmacaoExclusaoUsuario key={excluindo.id} user={excluindo} onClose={() => definirExcluindo(null)} onConfirm={excluir} />}
       {editando !== null && <FormularioEdicaoUsuario key={editando} userId={editando} service={servico} onClose={() => definirEditando(null)} onSave={salvar} />}
     </div>
   );
