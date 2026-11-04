@@ -55,10 +55,24 @@ somente quando `/auth/me` retorna o código correspondente na lista de permissõ
 | Notícias | `TELA_NOTICIAS` | Menu principal |
 | Departamentos | `TELA_DEPARTAMENTOS` | Cadastros |
 
-Essas quatro entradas estão disponíveis na sidebar, na navegação mobile e nos atalhos
-do Início, e abrem a página Em breve até a integração de seus módulos. Os protótipos
-originais permanecem preservados. Usuários continua em Cadastros e Funções do sistema
+As quatro entradas estão disponíveis na sidebar, na navegação mobile e nos atalhos
+do Início. Financeiro utiliza a API real; Agenda, Notícias e Departamentos abrem
+os protótipos originais na visualização administrativa de demonstração.
+Os atalhos exibem a indicação Protótipo; as telas possuem um aviso de dados de demonstração.
+As ações de criar, editar, excluir, aprovar e filtrar nesses módulos utilizam somente dados locais.
+O acesso continua sendo liberado pelas permissões reais, independentemente do nome da função.
+Usuários continua em Cadastros e Funções do sistema
 em Administração do Sistema, com as telas já integradas.
+
+Os três protótipos compartilham um armazenamento próprio do painel, separado por usuário
+autenticado (`okinawa-sc-painel-prototipo:<id>`). As alterações persistem neste navegador
+ao trocar de tela, sair e entrar novamente ou recarregar a página. A troca de usuário
+reinicia o contexto em memória e carrega somente os dados locais daquela conta.
+O site público mantém sua chave anterior `okinawa-sc-v2`, sem migrar ou apagar os dados salvos.
+Se o armazenamento local estiver indisponível, os protótipos funcionam em memória.
+O nome e a função exibidos no cabeçalho continuam sendo os da conta autenticada.
+O papel `admin` usado internamente nos protótipos não altera a função nem as permissões reais.
+Os formulários de Família e Configurações preservam o preenchimento de endereço via ViaCEP.
 
 Usuários abre a tela original adaptada para consultar `GET /usuarios` e `GET /usuarios/{id}`.
 O back retorna `[]` quando a listagem de usuários está vazia; o front utiliza esse contrato.
@@ -104,11 +118,34 @@ Campos somente leitura ou desabilitados possuem fundo cinza; os editáveis perma
 
 Cadastro e exclusão de usuários permanecem indisponíveis. Os formulários anteriores de cadastro e
 os outros módulos do protótipo continuam preservados para as próximas integrações.
-O painel autenticado não consome perfis, indicadores ou notificações de demonstração.
+Usuários e Funções do sistema utilizam dados reais da API; os quatro módulos identificados
+como protótipos utilizam os perfis, indicadores e notificações locais de demonstração.
 O armazenamento do site público permanece independente da sessão real.
 Permissões são comparadas pelo código exato, independentemente do nome da função
 ou do prefixo do código. Recuperação de senha depende de atendimento da administração.
 
+## Financeiro integrado
+
+A tela exige `TELA_FINANCEIRO` e usa os endpoints `/api/financeiro` do backend.
+O resumo mensal compara o mês atual ao anterior; os indicadores e gráficos anuais
+consideram apenas pagamentos confirmados e despesas pagas. Os filtros afetam a
+listagem e seus totais, enquanto os gráficos mantêm o ano corrente.
+
+Novas despesas usam o responsável identificado pelo token no servidor. O formulário
+não envia `fkUsuario`; edições preservam o responsável original. O vínculo com família
+é opcional. A API mantém o campo `dtDepesa` por compatibilidade com o contrato existente.
+Valores aceitam até duas casas decimais; o modal exibe erros e impede envios repetidos.
+
+Verificação local:
+
+```sh
+npm run test:finance
+npm run build
+```
+
+A revisão visual foi feita em 1440 px e 390 px, com dados de teste isolados.
+A interface de pagamentos utiliza os códigos dos cadastros existentes: o backend
+atual ainda não fornece catálogos de departamentos e cobranças para seletores por nome.
 ## Integração de famílias
 
 Cadastros › Famílias reutiliza a tabela e o formulário existentes, com dados reais via

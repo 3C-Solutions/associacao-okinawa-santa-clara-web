@@ -1,139 +1,147 @@
-import { useMemo, useState } from "react";
-import { baixarCsv, formatarData, formatarMoeda, ehPapelFamiliar, chaveMes, hojeISO } from "@/lib/data.js";
-import { saldoDe, estadoTaxa, transacoesDoEscopo, somar } from "@/lib/finance.js";
-import { usarArmazenamento, usarUsuario } from "@/store";
-import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, SeloStatus, Abas } from "@/components/ui";
-import Metrica from "@/pages/Dashboard/components/Metric.jsx";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
+import { usarArmazenamento } from "@/store";
+import { baixarCsv, formatarData, formatarMoeda, chaveMes, hojeISO } from "@/lib/data.js";
+import { somar } from "@/lib/finance.js";
+import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, SeloStatus, Abas, Cartao } from "@/components/ui";
 import Graficos from "./Charts.jsx";
-import FormularioTransacao from "./TransactionForm.jsx";
-import PaginaPagamento from "./requests/PaymentPage.jsx";
-import ModalReembolso from "./requests/RefundModal.jsx";
-import TabelaSolicitacoes from "./requests/RequestsTable.jsx";
-import { comTipo } from "./requests/helpers.js";
+import DespesasForm from "./DespesasForm.jsx";
+import PagamentosDER from "./PagamentosDER.jsx";
+import { criarServicoFinanceiro } from "@/services/financeiroApi.js";
 
-export default function Financas({ role: papel, account: conta }) {
-  const { state: dadosAplicacao, save: salvar, remove: remover, toast: aviso, confirm: confirmar } = usarArmazenamento();
-  const usuario = usarUsuario(conta);
+function Resumo({ label, value, detail, principal, tone = "text-muted" }) {
+  return <Cartao className={`min-w-0 p-5 ${principal ? "border-brand/20 bg-brand-soft/40" : ""}`}>
+    <p className="text-sm font-medium text-muted">{label}</p>
+    <p className={`mt-3 break-words text-2xl font-bold tracking-tight tabular-nums xl:text-3xl ${principal ? "text-brand" : "text-ink"}`}>{formatarMoeda(value)}</p>
+    <p className={`mt-2 text-xs leading-relaxed ${tone}`}>{detail}</p>
+  </Cartao>;
+}
+
+export default function Financas() {
+  const { requisitar, podeAcessar } = usarAutenticacao();
+  const { toast: aviso, confirm: confirmar } = usarArmazenamento();
+  const api = useMemo(() => criarServicoFinanceiro(requisitar), [requisitar]);
+  const permitido = podeAcessar("TELA_FINANCEIRO");
   const hoje = hojeISO();
-  const podeEditar = !ehPapelFamiliar(papel);
-  const [filtros, definirFiltros] = useState({ q: "", status: "Todos", type: "Todos", period: "Este ano" });
-  const [editando, definirEditando] = useState(null); // transação (nova ou existente)
-  const [pagando, definirPagando] = useState(false); // abre a página de pagamento
-  const [reembolsando, definirReembolsando] = useState(false);
-  const [aba, definirAba] = useState("ledger");
-
-  const todos = useMemo(() => transacoesDoEscopo(dadosAplicacao, usuario.scope), [dadosAplicacao, usuario.scope]);
-  const ano = hoje.slice(0, 4);
-  const taxa = papel === "admin" ? null : estadoTaxa(dadosAplicacao, papel, usuario.scope);
-
+  const ano = Number(hoje.slice(0, 4));
+  const mes = Number(hoje.slice(5, 7));
+  const [dashboard, setDashboard] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState("");
+  const [versao, setVersao] = useState(0);
+  const [aba, setAba] = useState("ledger");
+  const [formulario, setFormulario] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+  const operacaoEmCurso = useRef(false);
+  const [filtros, setFiltros] = useState({ q: "", status: "Todos", type: "Todos", period: "Este ano" });
+  const atualizar = useCallback(() => setVersao((valor) => valor + 1), []);
+  useEffect(() => {
+    if (!permitido) return undefined;
+    const controle = new AbortController();
+    setCarregando(true);
+    setErro("");
+    api.dashboard(ano, mes, { signal: controle.signal })
+      .then((dados) => { if (!controle.signal.aborted) setDashboard(dados); })
+      .catch((falha) => { if (!controle.signal.aborted) setErro(falha.message); })
+      .finally(() => { if (!controle.signal.aborted) setCarregando(false); });
+    return () => controle.abort();
+  }, [api, permitido, ano, mes, versao]);
+  const todos = useMemo(() => dashboard?.transactions ?? [], [dashboard]);
   const filtrado = useMemo(() => {
-    const consulta = filtros.q.trim().toLowerCase();
+    const consulta = filtros.q.trim().toLocaleLowerCase("pt-BR");
     return todos
-      .filter((tempo) => (filtros.period === "Este ano" ? tempo.date.startsWith(ano) : filtros.period === "Este mês" ? chaveMes(tempo.date) === chaveMes(hoje) : true))
-      .filter((tempo) => filtros.status === "Todos" || tempo.status === filtros.status)
-      .filter((tempo) => filtros.type === "Todos" || tempo.type === (filtros.type === "Entradas" ? "in" : "out"))
-      .filter((tempo) => !consulta || `${tempo.description} ${tempo.category}`.toLowerCase().includes(consulta))
-      .sort((elementoA, elementoB) => elementoB.date.localeCompare(elementoA.date));
+      .filter((item) => filtros.period === "Este ano" ? item.date.startsWith(String(ano)) : filtros.period === "Este mês" ? chaveMes(item.date) === chaveMes(hoje) : true)
+      .filter((item) => filtros.status === "Todos" || item.status === filtros.status)
+      .filter((item) => filtros.type === "Todos" || item.type === (filtros.type === "Entradas" ? "in" : "out"))
+      .filter((item) => !consulta || `${item.description} ${item.category}`.toLocaleLowerCase("pt-BR").includes(consulta))
+      .sort((a, b) => b.date.localeCompare(a.date));
   }, [todos, filtros, ano, hoje]);
-
-  // métricas
-  const mesAtual = saldoDe(todos.filter((tempo) => chaveMes(tempo.date) === chaveMes(hoje)));
-  const dataAnterior = new Date(Number(ano), Number(hoje.slice(5, 7)) - 2, 1);
-  const chaveAnterior = `${dataAnterior.getFullYear()}-${String(dataAnterior.getMonth() + 1).padStart(2, "0")}`;
-  const mesAnterior = saldoDe(todos.filter((tempo) => chaveMes(tempo.date) === chaveAnterior));
-  const alteracao = mesAnterior !== 0 ? ((mesAtual - mesAnterior) / Math.abs(mesAnterior)) * 100 : null;
-  const saldoAnual = saldoDe(todos.filter((tempo) => tempo.date.startsWith(ano)));
-  const entradasAnuais = somar(todos.filter((tempo) => tempo.date.startsWith(ano) && tempo.type === "in" && tempo.status === "Pago"));
-  const saidasAnuais = somar(todos.filter((tempo) => tempo.date.startsWith(ano) && tempo.type === "out" && tempo.status === "Pago"));
-
-  const definirFiltro = (chave) => (valor) => definirFiltros((elementoF) => ({ ...elementoF, [chave]: valor }));
-
-  const removerTransacao = (tempo) => confirmar({ title: "Excluir lançamento", message: `Excluir “${tempo.description}” (${formatarMoeda(tempo.amount)})? Essa ação não pode ser desfeita.`, onConfirm: () => { remover("transactions", tempo.id); aviso("Lançamento excluído"); } });
-  const marcarComoPago = (tempo) => { salvar("transactions", { ...tempo, status: "Pago" }); aviso("Marcado como pago"); };
-
-  const exportarCsv = () => {
-    baixarCsv(`financeiro-${hoje}.csv`, ["Data", "Descrição", "Categoria", "Tipo", "Valor", "Status"], filtrado.map((tempo) => [formatarData(tempo.date), tempo.description, tempo.category, tempo.type === "in" ? "Entrada" : "Saída", tempo.amount.toFixed(2).replace(".", ","), tempo.status]));
-    aviso("Arquivo CSV gerado");
+  const executar = async (operacao, mensagem, propagar = false) => {
+    if (operacaoEmCurso.current) return false;
+    operacaoEmCurso.current = true;
+    setOcupado(true);
+    try {
+      await operacao();
+      aviso(mensagem);
+      atualizar();
+      return true;
+    } catch (falha) {
+      if (propagar) throw falha;
+      aviso(falha.message, "error");
+      return false;
+    } finally {
+      operacaoEmCurso.current = false;
+      setOcupado(false);
+    }
   };
-
-  const meusPagamentos = dadosAplicacao.payments.filter((parametro) => papel === "admin" || parametro.scope === usuario.scope);
-  const meusReembolsos = dadosAplicacao.refunds.filter((resultado) => papel === "admin" || resultado.scope === usuario.scope);
-  const pagamentosPendentes = dadosAplicacao.payments.filter((parametro) => parametro.status === "Em verificação").length;
-  const reembolsosPendentes = dadosAplicacao.refunds.filter((resultado) => resultado.status === "Em análise").length;
-  const meuAberto = [...meusPagamentos, ...meusReembolsos].filter((resultado) => resultado.status === "Em verificação" || resultado.status === "Em análise").length;
-
-  if (pagando && taxa) return <PaginaPagamento role={papel} user={usuario} fee={taxa} onBack={() => definirPagando(false)} />;
-
+  const nomeLancamento = (item) => item.type === "in" ? "entrada" : "despesa";
+  const statusLancamento = (item) => item.id.startsWith("ENT-") && item.status === "Pago" ? "Recebido" : item.status;
+  const remover = (item) => confirmar({ title: `Excluir ${nomeLancamento(item)}`,
+    message: `Deseja excluir “${item.description}” (${formatarMoeda(item.amount)})? Essa ação não pode ser desfeita.`,
+    onConfirm: () => executar(() => item.type === "in" ? api.excluirEntrada(Number(item.id.slice(4))) : api.excluirDespesa(Number(item.id.slice(4))), "Lançamento excluído") });
+  const salvar = async (dados) => {
+    const entrada = formulario.type === "in";
+    const criar = entrada ? api.criarEntrada : api.criarDespesa;
+    const editar = entrada ? api.editarEntrada : api.editarDespesa;
+    const salvo = await executar(() => formulario.id ? editar(Number(formulario.id.slice(4)), dados) : criar(dados), entrada ? "Entrada salva com sucesso" : "Despesa salva com sucesso", true);
+    if (salvo) setFormulario(null);
+  };
+  const exportar = () => {
+    baixarCsv(`financeiro-${hoje}.csv`, ["Data", "Descrição", "Categoria", "Tipo", "Valor", "Status"],
+      filtrado.map((item) => [formatarData(item.date), item.description, item.category, item.type === "in" ? "Entrada" : "Saída", item.amount.toFixed(2).replace(".", ","), statusLancamento(item)]));
+    aviso("Arquivo CSV exportado");
+  };
+  const definirFiltro = (campo) => (valor) => setFiltros((anterior) => ({ ...anterior, [campo]: valor }));
   const colunas = [
-    { key: "date", label: "Data", render: (tempo) => formatarData(tempo.date) },
-    { key: "description", label: "Descrição" },
+    { key: "date", label: "Data", render: (item) => <span className="whitespace-nowrap text-muted">{formatarData(item.date)}</span> },
+    { key: "description", label: "Descrição", render: (item) => <span className="font-medium">{item.description}</span> },
     { key: "category", label: "Categoria" },
-    { key: "amount", label: "Valor", render: (tempo) => <span className={`whitespace-nowrap font-semibold ${tempo.type === "out" ? "text-danger" : "text-success"}`}>{tempo.type === "out" ? "- " : ""}{formatarMoeda(tempo.amount)}</span> },
-    { key: "status", label: "Status", render: (tempo) => <SeloStatus status={tempo.status} /> },
+    { key: "amount", label: "Valor", render: (item) => <span className={`whitespace-nowrap font-semibold tabular-nums ${item.type === "out" ? "text-danger" : "text-success"}`}>{item.type === "out" ? "− " : "+ "}{formatarMoeda(item.amount)}</span> },
+    { key: "status", label: "Status", render: (item) => item.id.startsWith("ENT-") && item.status === "Pago" ? <span className="text-sm font-semibold text-success">Recebido</span> : <SeloStatus status={item.status} /> },
   ];
-
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {papel === "admin" ? (
-          <>
-            <Metrica label="Saldo mensal" value={formatarMoeda(mesAtual)} trend={alteracao === null ? "Sem comparação com o mês anterior" : `${alteracao >= 0 ? "+" : "−"} ${Math.abs(alteracao).toFixed(1).replace(".", ",")}% em relação ao mês anterior`} tone={alteracao === null ? "muted" : alteracao >= 0 ? "success" : "danger"} />
-            <Metrica label="Saldo anual" value={formatarMoeda(saldoAnual)} trend={`Entradas ${formatarMoeda(entradasAnuais)} · Saídas ${formatarMoeda(saidasAnuais)}`} tone="muted" />
-          </>
-        ) : (
-          <>
-            {papel === "department" && <Metrica label="Saldo do departamento" value={formatarMoeda(saldoDe(todos))} trend={`Neste mês: ${formatarMoeda(mesAtual)}`} tone="muted" />}
-            <Metrica label={taxa.label} value={taxa.paid ? "Pago" : taxa.pendingPayment ? "Em verificação" : taxa.rejected ? "Recusado" : "Em aberto"} trend={taxa.paid ? `Pagamento confirmado em ${formatarData(taxa.tx.date)}` : taxa.pendingPayment ? "Aguardando verificação da Diretoria" : taxa.rejected ? "Comprovante recusado — envie novamente" : `Vencimento ${formatarData(taxa.dueDate)}${taxa.overdue ? " (vencida)" : ""}`} tone={taxa.paid ? "success" : taxa.pendingPayment ? "muted" : "danger"} />
-            <Metrica label="Valor" value={formatarMoeda(taxa.amount)} trend={taxa.period === "mensal" ? "Cobrança mensal" : "Cobrança anual"} tone="muted" />
-          </>
-        )}
-        <div className="flex flex-wrap items-end gap-2 md:col-span-2 xl:col-span-1 xl:justify-end">
-          {podeEditar && <Botao onClick={() => definirEditando({ date: hoje, description: "", category: "Outros", type: "out", amount: "", status: "Pago", scope: usuario.scope })}><Icone name="plus" size={18} /> Novo lançamento</Botao>}
-          {taxa && !taxa.paid && !taxa.pendingPayment && <Botao variant={podeEditar ? "secondary" : "primary"} onClick={() => definirPagando(true)}>Pagar {papel === "department" ? "mensalidade" : "anuidade"}</Botao>}
-          {papel !== "admin" && <Botao variant="outline" onClick={() => definirReembolsando(true)}>Solicitar reembolso</Botao>}
-        </div>
+  if (!permitido) return <EstadoVazio icon="wallet" title="Sem acesso ao Financeiro">Seu perfil não tem permissão para consultar esta tela.</EstadoVazio>;
+  if (carregando && !dashboard) return <Cartao className="p-8"><p role="status" className="text-sm text-muted">Carregando resumo e lançamentos financeiros...</p></Cartao>;
+  if (!dashboard) return <Cartao className="space-y-4 p-6"><p role="alert" className="text-danger">{erro || "Não foi possível carregar o financeiro."}</p><Botao onClick={atualizar}>Tentar novamente</Botao></Cartao>;
+  const resumo = dashboard.resumo;
+  const variacao = resumo.variacaoMensal;
+  const confirmados = filtrado.filter((item) => item.status === "Pago");
+  const bloqueado = ocupado || carregando || !!erro;
+  return <div className="min-w-0 space-y-6" aria-busy={carregando}>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div><h2 className="text-lg font-bold">Visão geral</h2><p className="mt-1 text-sm text-muted">Acompanhe o caixa e os pagamentos da associação em {ano}.</p></div>
+      <div className="flex flex-wrap gap-2">
+        <Botao disabled={bloqueado} onClick={() => setFormulario({ type: "in" })}><Icone name="plus" size={18} /> Nova entrada</Botao>
+        <Botao variant="outline" disabled={bloqueado} onClick={() => setFormulario({ type: "out" })}><Icone name="plus" size={18} /> Nova despesa</Botao>
       </div>
-
-      <Abas value={aba} onChange={definirAba} options={papel === "admin"
-        ? [{ value: "ledger", label: "Lançamentos" }, { value: "payments", label: `Verificar pagamentos${pagamentosPendentes ? ` (${pagamentosPendentes})` : ""}` }, { value: "refunds", label: `Verificar reembolsos${reembolsosPendentes ? ` (${reembolsosPendentes})` : ""}` }]
-        : [{ value: "ledger", label: "Lançamentos" }, { value: "requests", label: `Meus envios${meuAberto ? ` (${meuAberto})` : ""}` }]} />
-
-      {aba === "payments" && papel === "admin" && <TabelaSolicitacoes items={comTipo(meusPagamentos, [])} canReview />}
-      {aba === "refunds" && papel === "admin" && <TabelaSolicitacoes items={comTipo([], meusReembolsos)} canReview />}
-      {aba === "requests" && papel !== "admin" && <TabelaSolicitacoes items={comTipo(meusPagamentos, meusReembolsos)} showOwner={false} />}
-
-      {aba === "ledger" && <>
-      {podeEditar && <Graficos all={todos} year={ano} />}
-
-      <div className="space-y-3">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-          <EntradaBusca value={filtros.q} onChange={definirFiltro("q")} placeholder="Buscar por descrição ou categoria" />
-          <CampoSelecao label="" value={filtros.period} onChange={definirFiltro("period")} options={["Este mês", "Este ano", "Todos"]} className="[&>span:first-child]:hidden" />
-          <CampoSelecao label="" value={filtros.type} onChange={definirFiltro("type")} options={["Todos", "Entradas", "Saídas"]} className="[&>span:first-child]:hidden" />
-          <CampoSelecao label="" value={filtros.status} onChange={definirFiltro("status")} options={["Todos", "Pago", "Pendente", "Em verificação", "Recusado"]} className="[&>span:first-child]:hidden" />
-          <Botao variant="outline" onClick={exportarCsv} disabled={!filtrado.length}><Icone name="download" size={18} /> Exportar</Botao>
-        </div>
-        <p className="text-sm text-muted">
-          {filtrado.length} {filtrado.length === 1 ? "lançamento" : "lançamentos"} · Entradas <strong className="text-success">{formatarMoeda(somar(filtrado.filter((tempo) => tempo.type === "in")))}</strong> · Saídas <strong className="text-danger">{formatarMoeda(somar(filtrado.filter((tempo) => tempo.type === "out")))}</strong>
-        </p>
-      </div>
-
-      <TabelaDados
-        columns={colunas}
-        rows={filtrado}
-        empty={<EstadoVazio icon="wallet" title="Nenhum lançamento encontrado">Ajuste os filtros{podeEditar ? " ou crie um novo lançamento" : ""}.</EstadoVazio>}
-        actions={podeEditar ? (tempo) => (tempo.paymentId || (tempo.fee && papel !== "admin") ? <span className="text-xs text-muted">Via verificação</span> : (
-          <>
-            {tempo.status === "Pendente" && <BotaoIcone icon="check" label="Marcar como pago" onClick={() => marcarComoPago(tempo)} size="sm" />}
-            <BotaoIcone icon="edit" label="Editar" onClick={() => definirEditando(tempo)} size="sm" />
-            <BotaoIcone icon="trash" label="Excluir" tone="danger" onClick={() => removerTransacao(tempo)} size="sm" />
-          </>
-        )) : undefined}
-      />
-      </>}
-
-      {editando && <FormularioTransacao tx={editando} onClose={() => definirEditando(null)} onSave={(tempo) => { salvar("transactions", tempo); aviso(tempo.id ? "Lançamento atualizado" : "Lançamento criado"); definirEditando(null); }} />}
-      {reembolsando && <ModalReembolso role={papel} user={usuario} onClose={() => definirReembolsando(false)} />}
     </div>
-  );
+    {erro && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/20 bg-danger-soft p-4 text-sm"><p>{erro} Os dados abaixo são da última consulta.</p><Botao variant="outline" disabled={carregando} onClick={atualizar}>Tentar novamente</Botao></div>}
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <Resumo label="Saldo do mês" value={resumo.saldoMensal} principal detail={variacao == null ? "Sem base de comparação com o mês anterior" : `${variacao > 0 ? "+" : ""}${Number(variacao).toFixed(1).replace(".", ",")}% em relação ao mês anterior`} tone={variacao < 0 ? "text-danger" : "text-muted"} />
+      <Resumo label="Saldo do ano" value={resumo.saldoAnual} detail={`Entradas menos saídas confirmadas em ${ano}`} />
+      <Resumo label="Entradas no ano" value={resumo.entradasAnuais} detail="Entradas recebidas e pagamentos confirmados" tone="text-success" />
+      <Resumo label="Saídas no ano" value={resumo.saidasAnuais} detail="Despesas com status pago" tone="text-danger" />
+    </div>
+    <Abas value={aba} onChange={setAba} options={[{ value: "ledger", label: "Lançamentos" }, { value: "payments", label: "Verificar pagamentos" }]} />
+    {aba === "payments" ? <PagamentosDER api={api} onChange={atualizar} /> : <>
+      <Graficos all={todos} year={String(ano)} />
+      <section className="space-y-4" aria-label="Lançamentos financeiros">
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status.</p></div><Botao variant="outline" disabled={!filtrado.length} onClick={exportar}><Icone name="download" size={18} /> Exportar CSV</Botao></div>
+        <Cartao className="space-y-4 p-4 sm:p-5">
+          <div className="grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
+            <div><span className="mb-2 block text-sm font-semibold">Buscar lançamento</span><EntradaBusca value={filtros.q} onChange={definirFiltro("q")} placeholder="Descrição ou categoria" /></div>
+            <CampoSelecao label="Período" value={filtros.period} onChange={definirFiltro("period")} options={["Este mês", "Este ano", "Todos"]} />
+            <CampoSelecao label="Tipo" value={filtros.type} onChange={definirFiltro("type")} options={[{ value: "Todos", label: "Todos os tipos" }, "Entradas", "Saídas"]} />
+            <CampoSelecao label="Status" value={filtros.status} onChange={definirFiltro("status")} options={[{ value: "Todos", label: "Todos os status" }, { value: "Pago", label: "Pago / Recebido" }, "Pendente", "Recusado"]} />
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-divider pt-4 text-xs text-muted" aria-live="polite"><span>{filtrado.length} {filtrado.length === 1 ? "lançamento" : "lançamentos"}</span><span>Entradas confirmadas <strong className="text-success">{formatarMoeda(somar(confirmados.filter((item) => item.type === "in")))}</strong></span><span>Saídas pagas <strong className="text-danger">{formatarMoeda(somar(confirmados.filter((item) => item.type === "out")))}</strong></span></div>
+        </Cartao>
+        <TabelaDados columns={colunas} rows={filtrado} empty={<EstadoVazio icon="wallet" title="Nenhum lançamento encontrado">Ajuste os filtros ou cadastre uma entrada ou despesa.</EstadoVazio>} actions={(item) => item.locked ? <span className="text-xs text-muted">Via pagamento</span> : <>
+          {item.status === "Pendente" && <BotaoIcone icon="check" label={`Confirmar ${nomeLancamento(item)}`} size="sm" disabled={bloqueado} onClick={() => executar(() => item.type === "in" ? api.confirmarEntrada(Number(item.id.slice(4))) : api.confirmarDespesa(Number(item.id.slice(4))), "Lançamento confirmado")} />}
+          <BotaoIcone icon="edit" label={`Editar ${nomeLancamento(item)}`} size="sm" disabled={bloqueado} onClick={() => setFormulario(item)} />
+          <BotaoIcone icon="trash" label={`Excluir ${nomeLancamento(item)}`} size="sm" tone="danger" disabled={bloqueado} onClick={() => remover(item)} />
+        </>} />
+      </section>
+    </>}
+    {formulario && <DespesasForm registro={formulario} onClose={() => setFormulario(null)} onSave={salvar} carregarFamilias={api.familias} />}
+  </div>;
 }
