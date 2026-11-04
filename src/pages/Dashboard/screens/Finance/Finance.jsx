@@ -74,16 +74,21 @@ export default function Financas() {
       setOcupado(false);
     }
   };
-  const remover = (item) => confirmar({ title: "Excluir despesa",
+  const nomeLancamento = (item) => item.type === "in" ? "entrada" : "despesa";
+  const statusLancamento = (item) => item.id.startsWith("ENT-") && item.status === "Pago" ? "Recebido" : item.status;
+  const remover = (item) => confirmar({ title: `Excluir ${nomeLancamento(item)}`,
     message: `Deseja excluir “${item.description}” (${formatarMoeda(item.amount)})? Essa ação não pode ser desfeita.`,
-    onConfirm: () => executar(() => api.excluirDespesa(Number(item.id.slice(4))), "Despesa excluída") });
+    onConfirm: () => executar(() => item.type === "in" ? api.excluirEntrada(Number(item.id.slice(4))) : api.excluirDespesa(Number(item.id.slice(4))), "Lançamento excluído") });
   const salvar = async (dados) => {
-    const salvo = await executar(() => formulario.id ? api.editarDespesa(Number(formulario.id.slice(4)), dados) : api.criarDespesa(dados), "Despesa salva com sucesso", true);
+    const entrada = formulario.type === "in";
+    const criar = entrada ? api.criarEntrada : api.criarDespesa;
+    const editar = entrada ? api.editarEntrada : api.editarDespesa;
+    const salvo = await executar(() => formulario.id ? editar(Number(formulario.id.slice(4)), dados) : criar(dados), entrada ? "Entrada salva com sucesso" : "Despesa salva com sucesso", true);
     if (salvo) setFormulario(null);
   };
   const exportar = () => {
     baixarCsv(`financeiro-${hoje}.csv`, ["Data", "Descrição", "Categoria", "Tipo", "Valor", "Status"],
-      filtrado.map((item) => [formatarData(item.date), item.description, item.category, item.type === "in" ? "Entrada" : "Saída", item.amount.toFixed(2).replace(".", ","), item.status]));
+      filtrado.map((item) => [formatarData(item.date), item.description, item.category, item.type === "in" ? "Entrada" : "Saída", item.amount.toFixed(2).replace(".", ","), statusLancamento(item)]));
     aviso("Arquivo CSV exportado");
   };
   const definirFiltro = (campo) => (valor) => setFiltros((anterior) => ({ ...anterior, [campo]: valor }));
@@ -92,7 +97,7 @@ export default function Financas() {
     { key: "description", label: "Descrição", render: (item) => <span className="font-medium">{item.description}</span> },
     { key: "category", label: "Categoria" },
     { key: "amount", label: "Valor", render: (item) => <span className={`whitespace-nowrap font-semibold tabular-nums ${item.type === "out" ? "text-danger" : "text-success"}`}>{item.type === "out" ? "− " : "+ "}{formatarMoeda(item.amount)}</span> },
-    { key: "status", label: "Status", render: (item) => <SeloStatus status={item.status} /> },
+    { key: "status", label: "Status", render: (item) => item.id.startsWith("ENT-") && item.status === "Pago" ? <span className="text-sm font-semibold text-success">Recebido</span> : <SeloStatus status={item.status} /> },
   ];
   if (!permitido) return <EstadoVazio icon="wallet" title="Sem acesso ao Financeiro">Seu perfil não tem permissão para consultar esta tela.</EstadoVazio>;
   if (carregando && !dashboard) return <Cartao className="p-8"><p role="status" className="text-sm text-muted">Carregando resumo e lançamentos financeiros...</p></Cartao>;
@@ -104,13 +109,16 @@ export default function Financas() {
   return <div className="min-w-0 space-y-6" aria-busy={carregando}>
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div><h2 className="text-lg font-bold">Visão geral</h2><p className="mt-1 text-sm text-muted">Acompanhe o caixa e os pagamentos da associação em {ano}.</p></div>
-      <Botao disabled={bloqueado} onClick={() => setFormulario({})}><Icone name="plus" size={18} /> Nova despesa</Botao>
+      <div className="flex flex-wrap gap-2">
+        <Botao disabled={bloqueado} onClick={() => setFormulario({ type: "in" })}><Icone name="plus" size={18} /> Nova entrada</Botao>
+        <Botao variant="outline" disabled={bloqueado} onClick={() => setFormulario({ type: "out" })}><Icone name="plus" size={18} /> Nova despesa</Botao>
+      </div>
     </div>
     {erro && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger/20 bg-danger-soft p-4 text-sm"><p>{erro} Os dados abaixo são da última consulta.</p><Botao variant="outline" disabled={carregando} onClick={atualizar}>Tentar novamente</Botao></div>}
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Resumo label="Saldo do mês" value={resumo.saldoMensal} principal detail={variacao == null ? "Sem base de comparação com o mês anterior" : `${variacao > 0 ? "+" : ""}${Number(variacao).toFixed(1).replace(".", ",")}% em relação ao mês anterior`} tone={variacao < 0 ? "text-danger" : "text-muted"} />
       <Resumo label="Saldo do ano" value={resumo.saldoAnual} detail={`Entradas menos saídas confirmadas em ${ano}`} />
-      <Resumo label="Entradas no ano" value={resumo.entradasAnuais} detail="Anuidades e mensalidades confirmadas" tone="text-success" />
+      <Resumo label="Entradas no ano" value={resumo.entradasAnuais} detail="Entradas recebidas e pagamentos confirmados" tone="text-success" />
       <Resumo label="Saídas no ano" value={resumo.saidasAnuais} detail="Despesas com status pago" tone="text-danger" />
     </div>
     <Abas value={aba} onChange={setAba} options={[{ value: "ledger", label: "Lançamentos" }, { value: "payments", label: "Verificar pagamentos" }]} />
@@ -123,17 +131,17 @@ export default function Financas() {
             <div><span className="mb-2 block text-sm font-semibold">Buscar lançamento</span><EntradaBusca value={filtros.q} onChange={definirFiltro("q")} placeholder="Descrição ou categoria" /></div>
             <CampoSelecao label="Período" value={filtros.period} onChange={definirFiltro("period")} options={["Este mês", "Este ano", "Todos"]} />
             <CampoSelecao label="Tipo" value={filtros.type} onChange={definirFiltro("type")} options={[{ value: "Todos", label: "Todos os tipos" }, "Entradas", "Saídas"]} />
-            <CampoSelecao label="Status" value={filtros.status} onChange={definirFiltro("status")} options={[{ value: "Todos", label: "Todos os status" }, "Pago", "Pendente", "Recusado"]} />
+            <CampoSelecao label="Status" value={filtros.status} onChange={definirFiltro("status")} options={[{ value: "Todos", label: "Todos os status" }, { value: "Pago", label: "Pago / Recebido" }, "Pendente", "Recusado"]} />
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-divider pt-4 text-xs text-muted" aria-live="polite"><span>{filtrado.length} {filtrado.length === 1 ? "lançamento" : "lançamentos"}</span><span>Entradas confirmadas <strong className="text-success">{formatarMoeda(somar(confirmados.filter((item) => item.type === "in")))}</strong></span><span>Saídas pagas <strong className="text-danger">{formatarMoeda(somar(confirmados.filter((item) => item.type === "out")))}</strong></span></div>
         </Cartao>
-        <TabelaDados columns={colunas} rows={filtrado} empty={<EstadoVazio icon="wallet" title="Nenhum lançamento encontrado">Ajuste os filtros ou cadastre uma nova despesa.</EstadoVazio>} actions={(item) => item.locked ? <span className="text-xs text-muted">Via pagamento</span> : <>
-          {item.status === "Pendente" && <BotaoIcone icon="check" label="Confirmar despesa" size="sm" disabled={bloqueado} onClick={() => executar(() => api.confirmarDespesa(Number(item.id.slice(4))), "Despesa confirmada")} />}
-          <BotaoIcone icon="edit" label="Editar despesa" size="sm" disabled={bloqueado} onClick={() => setFormulario(item)} />
-          <BotaoIcone icon="trash" label="Excluir despesa" size="sm" tone="danger" disabled={bloqueado} onClick={() => remover(item)} />
+        <TabelaDados columns={colunas} rows={filtrado} empty={<EstadoVazio icon="wallet" title="Nenhum lançamento encontrado">Ajuste os filtros ou cadastre uma entrada ou despesa.</EstadoVazio>} actions={(item) => item.locked ? <span className="text-xs text-muted">Via pagamento</span> : <>
+          {item.status === "Pendente" && <BotaoIcone icon="check" label={`Confirmar ${nomeLancamento(item)}`} size="sm" disabled={bloqueado} onClick={() => executar(() => item.type === "in" ? api.confirmarEntrada(Number(item.id.slice(4))) : api.confirmarDespesa(Number(item.id.slice(4))), "Lançamento confirmado")} />}
+          <BotaoIcone icon="edit" label={`Editar ${nomeLancamento(item)}`} size="sm" disabled={bloqueado} onClick={() => setFormulario(item)} />
+          <BotaoIcone icon="trash" label={`Excluir ${nomeLancamento(item)}`} size="sm" tone="danger" disabled={bloqueado} onClick={() => remover(item)} />
         </>} />
       </section>
     </>}
-    {formulario && <DespesasForm registro={formulario} onClose={() => setFormulario(null)} onSave={salvar} />}
+    {formulario && <DespesasForm registro={formulario} onClose={() => setFormulario(null)} onSave={salvar} carregarFamilias={api.familias} />}
   </div>;
 }

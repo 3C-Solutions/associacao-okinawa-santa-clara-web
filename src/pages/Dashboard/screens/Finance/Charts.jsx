@@ -22,7 +22,7 @@ export default function Graficos({ all: todos, year: ano }) {
     <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
       <Cartao className="min-w-0 p-5 sm:p-6">
         <h2 className="font-bold">Entradas por categoria</h2>
-        <p className="text-xs text-muted">Pagamentos confirmados em {ano}</p>
+        <p className="text-xs text-muted">Entradas recebidas e pagamentos confirmados em {ano}</p>
         {porCategoria.length === 0 ? <p className="mt-6 text-sm text-muted">Sem entradas no período.</p> : (
           <div className="mt-5 space-y-4">
             {porCategoria.map(([rotulo, valor]) => {

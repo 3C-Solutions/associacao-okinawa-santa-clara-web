@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Botao, Campo, CampoSelecao, Cartao, SeloStatus, EstadoVazio } from "@/components/ui";
 import { hojeISO, METODOS_PAGAMENTO } from "@/lib/data.js";
+import CampoFamilia from "./CampoFamilia.jsx";
 
 function ListaPagamentos({ titulo, itens, tipo, ocupado, revisar }) {
   return <Cartao className="overflow-hidden">
@@ -73,7 +74,7 @@ export default function PagamentosDER({ api, onChange }) {
         <div><h3 className="font-bold">Novo pagamento pendente</h3><p className="mt-1 text-xs text-muted">Use os códigos dos cadastros existentes. O valor será obtido da cobrança vinculada.</p></div>
         <fieldset disabled={ocupado} className="grid min-w-0 items-end gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <CampoSelecao label="Cobrança" value={form.tipo} onChange={alterar("tipo")} options={[{value:"anuidade",label:"Anuidade da família"},{value:"mensalidade",label:"Mensalidade do departamento"}]} />
-          {form.tipo === "anuidade" ? <><Campo label="Código da família" type="number" min="1" step="1" value={form.fkFamilia} onChange={alterar("fkFamilia")} required /><Campo label="Código da anuidade" type="number" min="1" step="1" value={form.fkAnuidade} onChange={alterar("fkAnuidade")} required /></> : <><Campo label="Código do departamento" type="number" min="1" step="1" value={form.fkDepartamento} onChange={alterar("fkDepartamento")} required /><Campo label="Código da mensalidade" type="number" min="1" step="1" value={form.fkMensalidade} onChange={alterar("fkMensalidade")} required /></>}
+          {form.tipo === "anuidade" ? <><CampoFamilia carregar={api.familias} value={form.fkFamilia} onChange={alterar("fkFamilia")} required disabled={ocupado} /><Campo label="Código da anuidade" type="number" min="1" step="1" value={form.fkAnuidade} onChange={alterar("fkAnuidade")} required /></> : <><Campo label="Código do departamento" type="number" min="1" step="1" value={form.fkDepartamento} onChange={alterar("fkDepartamento")} required /><Campo label="Código da mensalidade" type="number" min="1" step="1" value={form.fkMensalidade} onChange={alterar("fkMensalidade")} required /></>}
           <CampoSelecao label="Forma de pagamento" value={form.formaPagamento} onChange={alterar("formaPagamento")} options={METODOS_PAGAMENTO} />
         </fieldset>
         <div className="flex justify-end"><Botao type="submit" disabled={ocupado}>{salvando ? "Processando..." : "Registrar pendência"}</Botao></div>

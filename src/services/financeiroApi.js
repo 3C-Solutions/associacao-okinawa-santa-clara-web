@@ -18,6 +18,7 @@ function adaptarLancamento(lancamento) {
 export function criarServicoFinanceiro(requisitar) {
  const chamar = (caminho, opcoes = {}) => requisitar(`/financeiro${caminho}`, opcoes);
  return {
+ familias: ({ signal } = {}) => requisitar("/familias", { signal }),
  async dashboard(ano, mes, { signal } = {}) {
  const resposta = await chamar(`/dashboard?${parametros({ ano, mes })}`, { signal });
  return {
@@ -30,6 +31,11 @@ export function criarServicoFinanceiro(requisitar) {
  editarDespesa: (id, dados) => chamar(`/despesas/${id}`, { method: "PUT", body: dados }),
  confirmarDespesa: (id) => chamar(`/despesas/${id}/confirmar`, { method: "PATCH" }),
  excluirDespesa: (id) => chamar(`/despesas/${id}`, { method: "DELETE" }),
+ entradas: () => chamar("/entradas"),
+ criarEntrada: (dados) => chamar("/entradas", { method: "POST", body: dados }),
+ editarEntrada: (id, dados) => chamar(`/entradas/${id}`, { method: "PUT", body: dados }),
+ confirmarEntrada: (id) => chamar(`/entradas/${id}/confirmar`, { method: "PATCH" }),
+ excluirEntrada: (id) => chamar(`/entradas/${id}`, { method: "DELETE" }),
  pagamentos: () => chamar("/pagamentos"),
  criarPagamento: (dados) => chamar("/pagamentos", { method: "POST", body: dados }),
  confirmarPagamento: (id, dtPagamento) => chamar(`/pagamentos/${id}/confirmar`, {
