@@ -72,7 +72,8 @@ O site público mantém sua chave anterior `okinawa-sc-v2`, sem migrar ou apagar
 Se o armazenamento local estiver indisponível, os protótipos funcionam em memória.
 O nome e a função exibidos no cabeçalho continuam sendo os da conta autenticada.
 O papel `admin` usado internamente nos protótipos não altera a função nem as permissões reais.
-Os formulários de Família e Configurações preservam o preenchimento de endereço via ViaCEP.
+O formulário de Família preserva o preenchimento de endereço via ViaCEP.
+Em Configurações, o endereço real da família fica disponível somente para consulta.
 
 Usuários abre a tela original adaptada para consultar `GET /usuarios` e `GET /usuarios/{id}`.
 O back retorna `[]` quando a listagem de usuários está vazia; o front utiliza esse contrato.
@@ -123,6 +124,33 @@ como protótipos utilizam os perfis, indicadores e notificações locais de demo
 O armazenamento do site público permanece independente da sessão real.
 Permissões são comparadas pelo código exato, independentemente do nome da função
 ou do prefixo do código. Recuperação de senha depende de atendimento da administração.
+
+## Configurações da própria conta
+
+Configurações é uma entrada comum do menu autenticado, inclusive quando a função não
+possui permissões de telas. Reaproveita a estrutura visual de dados pessoais, segurança
+e preferências, usando Axios com o JWT atual:
+
+- `GET /minha-conta` carrega identificação, telefone, nascimento, função e família/endereço.
+- `PUT /minha-conta` envia somente nome, e-mail e telefone; ao mudar o e-mail, inclui
+  `senhaAtual`. Os dados voltam a ser consultados no servidor ao reabrir a tela.
+- `PUT /minha-conta/senha` envia `senhaAtual` e `novaSenha`. A confirmação é validada
+  no formulário; a senha atual é conferida exclusivamente no back.
+
+O salvamento preserva o formulário em caso de falha e impede envios simultâneos.
+Após alterar os dados pessoais, o front força `/auth/me` para atualizar a identificação
+no cabeçalho. E-mail duplicado aparece junto ao campo; senha atual incorreta mantém a
+sessão e o formulário abertos. Somente uma resposta `401` indica perda de sessão.
+
+Após trocar a senha, o front limpa a sessão desse navegador e mostra a confirmação no
+login. A senha provisória de seis caracteres é aceita como senha atual; a nova exige
+pelo menos oito caracteres e respeita o limite de 72 bytes em UTF-8 do BCrypt.
+Senhas não são gravadas no armazenamento do protótipo nem no armazenamento da sessão.
+JWTs já emitidos em outras sessões continuam válidos até expirar.
+
+Família, endereço, função e nascimento são somente leitura, com fundo cinza. Preferências
+de notificações ficam indisponíveis nesta etapa. A tela real não oferece restauração
+de dados de demonstração e não utiliza contas ou senhas mockadas.
 
 ## Financeiro integrado
 
