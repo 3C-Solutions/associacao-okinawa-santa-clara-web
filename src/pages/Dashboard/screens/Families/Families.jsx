@@ -5,8 +5,6 @@ import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca } from
 import DetalhesFamilia from "./FamilyDetails.jsx";
 import FormularioFamilia, { NOVA_FAMILIA } from "./FamilyForm.jsx";
 
-// ---------- Diretoria ----------
-// Primeiro passo do cadastro: a família (sobrenome + endereço). O associado responsável só pode ser cadastrado depois, escolhendo uma família.
 export default function Familias() {
   const { state: dadosAplicacao, save: salvar, remove: remover, toast: aviso, confirm: confirmar } = usarArmazenamento();
   const [consulta, definirConsulta] = useState("");
@@ -44,6 +42,7 @@ export default function Familias() {
         <Botao onClick={() => definirEditando(NOVA_FAMILIA)}><Icone name="plus" size={18} /> Nova família</Botao>
       </div>
       <p className="text-sm text-muted">{linhas.length} {linhas.length === 1 ? "família encontrada" : "famílias encontradas"}.</p>
+      <p className="rounded-lg bg-brand-soft px-4 py-3 text-sm text-brand">Novas famílias são cadastradas na API. A listagem, edição e exclusão ainda usam os dados locais, pois essas operações não estão disponíveis no backend.</p>
       <TabelaDados
         columns={colunas}
         rows={linhas}
@@ -51,8 +50,8 @@ export default function Familias() {
         actions={(elementoF) => (
           <>
             <BotaoIcone icon="eye" label={`Ver ${elementoF.label}`} size="sm" onClick={() => definirVisualizando(elementoF)} />
-            <BotaoIcone icon="edit" label={`Editar ${elementoF.label}`} size="sm" onClick={() => definirEditando(elementoF)} />
-            <BotaoIcone icon="trash" label={`Excluir ${elementoF.label}`} tone="danger" size="sm" onClick={() => excluir(elementoF)} />
+            <BotaoIcone icon="edit" label={elementoF.apiManaged ? `Edição indisponível para ${elementoF.label}` : `Editar ${elementoF.label}`} size="sm" disabled={elementoF.apiManaged} onClick={() => definirEditando(elementoF)} />
+            <BotaoIcone icon="trash" label={elementoF.apiManaged ? `Exclusão indisponível para ${elementoF.label}` : `Excluir ${elementoF.label}`} tone="danger" size="sm" disabled={elementoF.apiManaged} onClick={() => excluir(elementoF)} />
           </>
         )}
       />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TIPOS_CRIAVEIS_ADMIN, SENHA_INICIAL, RELACOES, TIPOS_USUARIOS, ehEmail, ehDataPassada, mascararTelefone, hojeISO, adicionarDias, identificadorUnico } from "@/lib/data.js";
+import { TIPOS_CRIAVEIS_ADMIN, SENHA_INICIAL, RELACOES, TIPOS_USUARIOS, ehEmail, ehDataPassada, mascararTelefone, hojeISO, adicionarDias } from "@/lib/data.js";
 import { associadoDaFamilia, emailEmUso, rotuloFamilia, formatarDataCadastro } from "@/lib/people.js";
 import { usarArmazenamento } from "@/store";
 import { Botao, BotaoIcone, Campo, Modal, CampoSelecao } from "@/components/ui";
@@ -7,8 +7,6 @@ import FormularioFamilia from "../../Families/FamilyForm.jsx";
 
 const rotuloTipo = (tipo) => TIPOS_USUARIOS.find((tempo) => tempo.value === tipo)?.label || "";
 
-// Cadastro de UM usuário por vez: a diretoria só cadastra Diretoria e Associado responsável (Departamento e Dependente são cadastrados por quem é dono deles).
-// user = null (novo) ou a linha da lista (edição; o tipo não pode ser trocado).
 export default function FormularioUsuario({ user: usuario, onClose: aoFechar, onSave: aoSalvar }) {
   const { state: dadosAplicacao, save: salvar, toast: aviso } = usarArmazenamento();
   const editando = !!usuario;
@@ -26,8 +24,6 @@ export default function FormularioUsuario({ user: usuario, onClose: aoFechar, on
   const [cadastrandoFamilia, definirCadastrandoFamilia] = useState(false);
   const definir = (chave) => (valor) => { definirFormulario((elementoF) => ({ ...elementoF, [chave]: chave === "phone" ? mascararTelefone(valor) : valor })); definirErros((evento) => ({ ...evento, [chave]: undefined })); };
 
-  // Associado responsável: só famílias já cadastradas e que ainda não têm responsável (a própria, se estiver editando).
-  // Dependente: só famílias que já têm um associado responsável.
   const identificadorPropriaFamilia = editando && usuario.type === "member" ? usuario.associate.familyId : null;
   const familiasDe = (tipo) => dadosAplicacao.families.filter((elementoF) => {
     const responsavel = associadoDaFamilia(dadosAplicacao, elementoF.id);
@@ -61,15 +57,13 @@ export default function FormularioUsuario({ user: usuario, onClose: aoFechar, on
   };
 
   const salvarFamilia = (familia) => {
-    const novaFamilia = { ...familia, id: identificadorUnico() };
-    salvar("families", novaFamilia);
-    definirFormulario((anterior) => ({ ...anterior, familyId: novaFamilia.id }));
+    salvar("families", familia);
+    definirFormulario((anterior) => ({ ...anterior, familyId: familia.id }));
     definirErros((anteriores) => ({ ...anteriores, familyId: undefined }));
     definirCadastrandoFamilia(false);
     aviso("Família cadastrada e selecionada.");
   };
 
-  // Exibe um formulário por vez, mantendo o rascunho do usuário neste componente.
   if (cadastrandoFamilia) return <FormularioFamilia onClose={() => definirCadastrandoFamilia(false)} onSave={salvarFamilia} hint="Ao salvar, esta família será selecionada no cadastro do usuário." />;
 
   return (

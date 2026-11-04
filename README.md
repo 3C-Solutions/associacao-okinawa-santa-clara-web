@@ -41,6 +41,12 @@ bloqueado, o acesso funciona somente em memória. A validade atual é de 15 minu
 sem refresh token. Sair limpa a sessão do navegador; o JWT continua válido no back
 até expirar. Voltar à aba atualiza identificação, função e permissões.
 
+O cadastro de famílias exige a permissão `TELA_FAMILIAS`. Ao criar uma família, o
+front envia primeiro o endereço para `POST /enderecos` e depois envia o nome e o ID
+retornado para `POST /familias`. A API atualmente não oferece listagem, edição ou
+exclusão de famílias; esses fluxos continuam locais no front e os registros existentes
+no backend não são carregados na tela.
+
 Após o login, o painel reaproveita o layout anterior com sidebar, cabeçalho e navegação
 mobile, utilizando nome, e-mail e função retornados por `/auth/me`. O Início está disponível
 a toda conta autenticada. O catálogo do painel libera Usuários com `TELA_USUARIOS` e
