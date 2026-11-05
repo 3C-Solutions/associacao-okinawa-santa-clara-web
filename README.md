@@ -152,6 +152,37 @@ Família, endereço, função e nascimento são somente leitura, com fundo cinza
 de notificações ficam indisponíveis nesta etapa. A tela real não oferece restauração
 de dados de demonstração e não utiliza contas ou senhas mockadas.
 
+## Home da diretoria e de Teste local Swagger
+
+As funções **Diretoria** e **Teste local Swagger** abrem a Home da diretoria no Início.
+O nome anterior **Teste Swagger** também é reconhecido. A escolha
+normaliza espaços e maiúsculas/minúsculas no nome retornado por `/auth/me`;
+não depende de um ID fixo nem concede permissões. Outras funções mantêm a home
+de conta e acessos. Renomear essas funções para outros nomes retorna à home genérica.
+
+A Home mantém a composição da diretoria: quatro indicadores (saldo do mês,
+reservas pendentes, famílias e departamentos ativos), até cinco pendências e duas
+notícias à esquerda; quatro próximos eventos e calendário à direita no desktop.
+No celular, os blocos ficam empilhados. Os cartões Sua conta e Seus acessos ficam
+somente na home genérica das outras funções.
+
+Todo o conteúdo da Home é mockado, com um aviso discreto de demonstração.
+A função original `criarDadosIniciais()`, em `src/lib/data.js`, fornece os exemplos,
+preservando os cadastros, lançamentos, notícias, imagens e regras de datas que já
+existiam no projeto. A Home gera uma instância em memória ao abrir, mantida durante
+sua exibição, sem APIs ou dependência do armazenamento do painel.
+Todos os blocos demonstrativos aparecem mesmo sem permissões dos módulos.
+A leitura das notícias de exemplo e a navegação entre meses do calendário funcionam localmente.
+
+Os atalhos para outros módulos continuam exigindo a permissão real e um destino
+disponível no menu. Revogar um acesso retira o atalho, preservando os exemplos.
+Financeiro e Famílias utilizam APIs reais; seus atalhos indicam **dados reais**.
+Pendências financeiras demonstrativas não abrem nem alteram registros reais.
+Alterações feitas nos demais módulos não modificam a instância de exemplos da Home.
+
+Verificação desta entrega: `npm run build`. Os testes preexistentes de Financeiro
+e Usuários continuam disponíveis pelos scripts `test:finance` e `test:usuarios`.
+
 ## Financeiro integrado
 
 A tela exige `TELA_FINANCEIRO` e usa os endpoints `/api/financeiro` do backend.
