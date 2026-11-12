@@ -2,16 +2,23 @@ import { ErroApi } from "../lib/api.js";
 
 export const CHAVE_SESSAO = "okinawa-sc-auth-v1";
 const AVISO_SESSAO = "Sua sessão expirou ou sua conta não possui mais acesso. Entre novamente.";
+const AVISO_SENHA_ALTERADA = "Senha alterada com sucesso. Entre novamente com a nova senha.";
 const estadoInicial = { status: "restaurando", usuario: null, permissoes: [], erro: null, aviso: null, atualizando: false };
 
 function validarContexto(dados) {
   const usuario = dados?.usuario;
   if (!Number.isInteger(usuario?.id) || typeof usuario.nome !== "string" || typeof usuario.email !== "string"
     || !Number.isInteger(usuario.funcaoSistema?.id) || typeof usuario.funcaoSistema.nome !== "string"
+    || typeof dados.primeiroAcesso !== "boolean"
     || !Array.isArray(dados?.permissoes) || !dados.permissoes.every((codigo) => typeof codigo === "string" && codigo.length > 0)) {
     throw new ErroApi(502, "Não foi possível carregar sua conta. Tente novamente.");
   }
-  return { usuario, permissoes: [...new Set(dados.permissoes)] };
+  const { primeiroAcesso } = dados;
+  return {
+    usuario,
+    permissoes: primeiroAcesso ? [] : [...new Set(dados.permissoes)],
+    status: primeiroAcesso ? "trocaSenhaObrigatoria" : "autenticado",
+  };
 }
 
 // O ciclo da sessão é independente do React para controlar cancelamento e respostas atrasadas.
@@ -75,7 +82,7 @@ export function criarSessao({ api, storage, agora = Date.now, agendar = setTimeo
         if (atual !== versao || contextoAtual !== versaoContexto || signal.aborted || verificarExpiracao()) return false;
         const contexto = validarContexto(dados);
         salvar();
-        publicar({ ...contexto, status: "autenticado", atualizando: false, erro: null, aviso: null });
+        publicar({ ...contexto, atualizando: false, erro: null, aviso: null });
         return true;
       } catch (erro) {
         if (atual !== versao || contextoAtual !== versaoContexto || signal.aborted) return false;
@@ -136,7 +143,15 @@ export function criarSessao({ api, storage, agora = Date.now, agendar = setTimeo
   };
 
   const requisitar = async (caminho, opcoes = {}) => {
-    if (!credencial || verificarExpiracao() || estado.status !== "autenticado") throw new ErroApi(401, AVISO_SESSAO);
+    if (!credencial || verificarExpiracao()) throw new ErroApi(401, AVISO_SESSAO);
+    const trocaObrigatoria = estado.status === "trocaSenhaObrigatoria";
+    if (trocaObrigatoria) {
+      if (caminho !== "/minha-conta/senha" || opcoes.method !== "PUT") {
+        throw new ErroApi(403, "Altere sua senha para acessar o sistema.");
+      }
+    } else if (estado.status !== "autenticado") {
+      throw new ErroApi(401, AVISO_SESSAO);
+    }
     const atual = versao;
     const solicitacao = new AbortController();
     const cancelar = () => solicitacao.abort();
@@ -147,14 +162,18 @@ export function criarSessao({ api, storage, agora = Date.now, agendar = setTimeo
     });
     const signal = solicitacao.signal;
     try {
-      const resposta = await api(caminho, { ...opcoes, token: credencial.token, signal });
+      const resposta = await api(caminho, {
+        ...opcoes, token: credencial.token, signal,
+        ...(trocaObrigatoria ? { statusEsperado: 204 } : {}),
+      });
       if (atual !== versao || signal.aborted) throw new DOMException("Requisição cancelada", "AbortError");
-      if (verificarExpiracao()) throw new ErroApi(401, AVISO_SESSAO);
+      if (trocaObrigatoria) sair(AVISO_SENHA_ALTERADA);
+      else if (verificarExpiracao()) throw new ErroApi(401, AVISO_SESSAO);
       return resposta;
     } catch (erro) {
       if (atual === versao && !signal.aborted) {
         if (erro.status === 401) sair(AVISO_SESSAO);
-        if (erro.status === 403) await atualizarContexto();
+        if (erro.status === 403 && !trocaObrigatoria) await atualizarContexto();
       }
       throw erro;
     } finally {

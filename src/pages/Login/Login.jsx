@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ehEmail } from "@/lib/data.js";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { Botao, Campo, Icone, Titulo } from "@/components/ui";
+import LayoutAcesso from "./LayoutAcesso.jsx";
 
 export default function Acesso({ onBack: aoVoltar }) {
   const { entrar, status, erro, aviso } = usarAutenticacao();
@@ -24,17 +25,7 @@ export default function Acesso({ onBack: aoVoltar }) {
   };
 
   return (
-    <div className="grid min-h-dvh bg-canvas lg:grid-cols-2">
-      <div className="relative hidden overflow-hidden bg-brand lg:block">
-        <img src="/associacao.jpg" alt="" className="absolute inset-0 h-full w-full object-cover opacity-45" />
-        <div className="absolute inset-0 bg-gradient-to-t from-brand via-brand/50 to-transparent" />
-        <div className="absolute bottom-12 left-12 right-12 text-white">
-          <img src="/logo.jpg" alt="Logo da Associação Okinawa de Santa Clara" className="size-14 rounded-full object-contain" />
-          <h1 className="mt-7 max-w-lg text-4xl font-bold leading-tight">Uma comunidade mais conectada começa aqui.</h1>
-          <p className="mt-4 max-w-md text-white/75">Acesse informações, acompanhe eventos e cuide da sua participação na associação.</p>
-        </div>
-      </div>
-      <div className="flex items-center justify-center px-4 py-10">
+    <LayoutAcesso>
         <form onSubmit={enviar} noValidate aria-busy={carregando} className="w-full max-w-lg">
           <button type="button" onClick={aoVoltar} className="mb-10 flex min-h-11 items-center gap-2 font-semibold text-brand hover:underline"><span className="rotate-180"><Icone name="arrow" /></span> Voltar ao site</button>
           <Titulo>Boas-vindas</Titulo>
@@ -59,7 +50,6 @@ export default function Acesso({ onBack: aoVoltar }) {
             <Botao type="submit" disabled={carregando} className="mt-5 min-h-13 w-full">{carregando ? "Entrando..." : "Entrar"} {!carregando && <Icone name="arrow" />}</Botao>
           </div>
         </form>
-      </div>
-    </div>
+    </LayoutAcesso>
   );
 }
