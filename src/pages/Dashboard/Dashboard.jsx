@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
-import { Botao, Icone, Titulo } from "@/components/ui";
+import { Icone, Titulo } from "@/components/ui";
 import GrupoNavegacao from "./components/NavGroup.jsx";
 import TelaPrototipo from "./screens/Prototype/PrototypeScreen.jsx";
 import { NAVEGACAO_PAINEL, filtrarNavegacao, listarTelas, resolverTela } from "./navigation.js";
@@ -54,25 +54,24 @@ export default function Painel({ onLogout: aoSair }) {
   );
 
   return (
-    <div className="min-h-dvh bg-canvas text-ink lg:flex">
+    <div className="min-h-dvh bg-canvas text-ink">
       <a href="#conteudo-painel" className="sr-only z-50 rounded-lg bg-white p-3 text-brand focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Ir para o conteúdo</a>
-      <aside className="border-b border-divider bg-white lg:fixed lg:inset-y-0 lg:flex lg:w-sidebar lg:flex-col lg:border-b-0 lg:border-r">
-        <div className="flex w-full items-center justify-between px-5 py-4 lg:block lg:px-6 lg:py-7">
-          <div className="flex items-center gap-3">
-            <img src="/logo.jpg" alt="Logo da Associação Okinawa de Santa Clara" className="size-11 shrink-0 rounded-full object-contain" />
-            <div><p className="text-sm font-bold text-brand">Okinawa Santa Clara</p><p className="text-xs text-muted">Portal da Associação</p></div>
-          </div>
-          <button type="button" onClick={() => definirMenuAberto(!menuAberto)} aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="menu-movel" className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand focus:outline-none focus:ring-2 focus:ring-brand lg:hidden">
+      {menuAberto && <button type="button" aria-label="Fechar menu lateral" onClick={() => definirMenuAberto(false)} className="fixed inset-0 z-30 bg-black/30 lg:hidden" />}
+      <aside aria-label="Menu lateral" className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-divider bg-white ${menuAberto ? "w-sidebar max-w-[calc(100vw-1rem)]" : "w-20"}`}>
+        <div className="flex items-center justify-between gap-2 px-4 py-5">
+          <button type="button" onClick={() => definirMenuAberto(!menuAberto)} aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="menu-painel" className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand focus:outline-none focus:ring-2 focus:ring-brand">
             <Icone name={menuAberto ? "close" : "menu"} />
           </button>
         </div>
         {menuAberto && (
-          <div id="menu-movel" className="space-y-3 border-t border-divider p-4 lg:hidden">
-            {CartaoUsuario}
-            <Botao variant="outline" onClick={aoSair} className="w-full"><Icone name="logout" /> Sair</Botao>
+          <div className="px-4 pb-6">
+          <div className="flex items-center gap-3">
+            <img src="/logo.jpg" alt="Logo da Associação Okinawa de Santa Clara" className="size-11 shrink-0 rounded-full object-contain" />
+            <div><p className="text-sm font-bold text-brand">Okinawa Santa Clara</p><p className="text-xs text-muted">Portal da Associação</p></div>
+          </div>
           </div>
         )}
-        <div className="hidden overflow-y-auto px-4 lg:block">
+        <div id="menu-painel" hidden={!menuAberto} className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           <div className="mb-5">{CartaoUsuario}</div>
           {atualizando && avisoAtualizacao}
           <nav className="space-y-1" aria-label="Área logada" aria-busy={atualizando}>
@@ -83,15 +82,14 @@ export default function Painel({ onLogout: aoSair }) {
             ))}
           </nav>
         </div>
-        <div className="mt-auto hidden border-t border-divider p-4 lg:block">
+        {menuAberto && (
+        <div className="mt-auto border-t border-divider p-4">
           <button type="button" onClick={aoSair} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-4 text-sm font-semibold text-muted hover:bg-danger-soft hover:text-danger"><Icone name="logout" />Sair</button>
         </div>
+        )}
       </aside>
-      <div className="min-w-0 flex-1 lg:ml-sidebar">
-        {atualizando && <div className="px-4 pt-3 lg:hidden">{avisoAtualizacao}</div>}
-        <nav aria-label="Navegação mobile" aria-busy={atualizando} className="flex gap-2 overflow-x-auto border-b border-divider bg-white px-4 py-2 lg:hidden">
-          {telas.map((item) => <button key={item.id} type="button" onClick={() => navegar(item.id)} aria-current={telaAtiva === item.id ? "page" : undefined} className={`min-h-11 shrink-0 rounded-full px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand ${telaAtiva === item.id ? "bg-brand text-white" : "bg-brand-soft text-brand"}`}>{item.label}</button>)}
-        </nav>
+      <div className={`min-w-0 ml-20 ${menuAberto ? "lg:ml-sidebar" : ""}`}>
+        {atualizando && !menuAberto && <div className="mx-auto max-w-dashboard px-4 pt-3 md:px-8">{avisoAtualizacao}</div>}
         <main id="conteudo-painel" tabIndex={-1} className="mx-auto max-w-dashboard p-4 focus:outline-none md:p-8">
           <div className="mb-8">
             <p className="mb-1 text-sm font-semibold text-brand">{usuario.funcaoSistema.nome}</p>
