@@ -20,6 +20,19 @@ export default function FormularioFamilia({ family: familia = NOVA_FAMILIA, onCl
     definirErroEnvio(null);
   };
 
+  const preencherEndereco = (endereco) => {
+    if (envio.current) return;
+    definirFormulario((atual) => ({ ...atual, ...endereco }));
+    const errosEndereco = validarCadastroFamilia(endereco);
+    definirErros((atuais) => {
+      const proximos = { ...atuais };
+      for (const campo of Object.keys(endereco)) {
+        if (proximos[campo]) proximos[campo] = errosEndereco[campo];
+      }
+      return proximos;
+    });
+  };
+
   const enviar = async (evento) => {
     evento?.preventDefault();
     if (envio.current) return;
@@ -51,14 +64,15 @@ export default function FormularioFamilia({ family: familia = NOVA_FAMILIA, onCl
           onChange={definir("cep")}
           error={erros.cep}
           readOnly={salvando}
-          onAddressFound={(endereco) => { if (!envio.current) definirFormulario((atual) => ({ ...atual, ...endereco })); }}
+          required
+          onAddressFound={preencherEndereco}
         />
         <Campo className="sm:col-span-2" label="Endereço" value={formulario.address} onChange={definir("address")} error={erros.address} placeholder="Rua, avenida…" required maxLength={255} disabled={salvando} />
         <Campo label="Número" value={formulario.number} onChange={definir("number")} error={erros.number} maxLength={255} disabled={salvando} />
         <Campo label="Complemento" value={formulario.complement} onChange={definir("complement")} error={erros.complement} maxLength={255} disabled={salvando} />
-        <Campo label="Bairro" value={formulario.district} onChange={definir("district")} error={erros.district} maxLength={255} disabled={salvando} />
-        <Campo label="Cidade" value={formulario.city} onChange={definir("city")} error={erros.city} maxLength={255} disabled={salvando} />
-        <Campo label="UF" value={formulario.uf} onChange={definir("uf")} error={erros.uf} placeholder="SP" maxLength={2} disabled={salvando} />
+        <Campo label="Bairro" value={formulario.district} onChange={definir("district")} error={erros.district} required maxLength={255} disabled={salvando} />
+        <Campo label="Cidade" value={formulario.city} onChange={definir("city")} error={erros.city} required maxLength={255} disabled={salvando} />
+        <Campo label="UF" value={formulario.uf} onChange={definir("uf")} error={erros.uf} placeholder="SP" required maxLength={2} disabled={salvando} />
       </fieldset>
       {erroEnvio && <p role="alert" className="mt-4 text-sm font-semibold text-danger">{erroEnvio}</p>}
       <button type="submit" className="sr-only" tabIndex={-1} disabled={salvando}>Salvar família</button>
