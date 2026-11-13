@@ -30,7 +30,7 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
     ...(adapter ? { adapter } : {}),
   });
 
-  return async function requisitar(caminho, { token, body, signal, headers, ...opcoes } = {}) {
+  return async function requisitar(caminho, { token, body, signal, headers, statusEsperado, ...opcoes } = {}) {
     if (!caminho.startsWith("/") || caminho.startsWith("//")) throw new Error("Caminho de API inválido");
     try {
       const cabecalhos = new axios.AxiosHeaders(headers);
@@ -47,6 +47,9 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
           if (typeof dadosErro?.codigo === "string") codigo = dadosErro.codigo;
         } catch { /* Proxies podem devolver um corpo sem JSON. */ }
         throw new ErroApi(resposta.status, mensagens[resposta.status] || "O serviço está indisponível. Tente novamente em instantes.", codigo);
+      }
+      if (statusEsperado !== undefined && resposta.status !== statusEsperado) {
+        throw new ErroApi(502, "O serviço retornou uma resposta inesperada. Tente novamente.");
       }
       const texto = resposta.data;
       if (!texto) return null;

@@ -4,6 +4,7 @@ import { ProvedorAutenticacao, usarAutenticacao } from "@/auth/AuthProvider.jsx"
 import { Botao, Cartao, Titulo } from "@/components/ui";
 import SitePublico from "@/pages/PublicSite/PublicSite.jsx";
 import Acesso from "@/pages/Login/Login.jsx";
+import TrocaSenhaObrigatoria from "@/pages/Login/TrocaSenhaObrigatoria.jsx";
 import Painel from "@/pages/Dashboard/Dashboard.jsx";
 
 function Conteudo() {
@@ -25,12 +26,14 @@ function Conteudo() {
       </main>
     );
   }
+  if (status === "trocaSenhaObrigatoria") return <TrocaSenhaObrigatoria onBack={encerrar} />;
+
   if (status === "autenticado") return (
     <ProvedorArmazenamento key={usuario.id} storageKey={`okinawa-sc-painel-prototipo:${usuario.id}`}>
       <Painel onLogout={encerrar} />
     </ProvedorArmazenamento>
   );
-  if (visualizacao === "login" || aviso || status === "autenticando") {
+  if (visualizacao === "login" || aviso || erro || status === "autenticando") {
     return <Acesso onBack={() => { sair(); limparAviso(); definirVisualizacao("public"); }} />;
   }
   return <SitePublico onLogin={() => definirVisualizacao("login")} />;
