@@ -71,9 +71,10 @@ export default function Painel({ onLogout: aoSair }) {
             {menuAberto ? CartaoUsuario : <span aria-hidden="true">{usuario.nome.trim().charAt(0)}</span>}
           </button>
         </div>
-        <div id="menu-painel" className={`min-h-0 flex-1 pt-[60px] pb-4 ${menuAberto ? "overflow-x-hidden overflow-y-auto overscroll-contain px-4 [scrollbar-width:thin]" : "flex flex-col overflow-hidden px-3"}`}>
+        <div id="menu-painel" className={`flex min-h-0 flex-1 flex-col overflow-hidden pb-4 ${menuAberto ? "px-4" : "px-3"}`}>
+          <div aria-hidden="true" className="max-h-[60px] min-h-0 flex-1" />
           {menuAberto && atualizando && avisoAtualizacao}
-          <nav className={`space-y-1 ${menuAberto ? "" : "min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:thin]"}`} aria-label="Área logada" aria-busy={atualizando}>
+          <nav className="min-h-0 space-y-1 overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:thin]" aria-label="Área logada" aria-busy={atualizando}>
             {navegacao.map((item) => item.children ? (
               <GrupoNavegacao key={item.id} item={item} screen={telaAtiva} onNavigate={navegar} compacto={!menuAberto} grupoFlutuante={grupoFlutuante} definirGrupoFlutuante={definirGrupoFlutuante} />
             ) : menuAberto ? (
