@@ -10,6 +10,7 @@ export default function Painel({ onLogout: aoSair }) {
   const { usuario, status, podeAcessar, atualizando } = usarAutenticacao();
   const [tela, definirTela] = useState("home");
   const [menuAberto, definirMenuAberto] = useState(false);
+  const [grupoFlutuante, definirGrupoFlutuante] = useState(null);
   const navegacao = filtrarNavegacao(NAVEGACAO_PAINEL, podeAcessar);
   const telas = listarTelas(navegacao);
   // A resolução ocorre antes da renderização, inclusive no primeiro quadro após uma revogação.
@@ -32,6 +33,7 @@ export default function Painel({ onLogout: aoSair }) {
   const navegar = (identificador) => {
     if (!telas.some((item) => item.id === identificador)) return;
     definirTela(identificador);
+    definirGrupoFlutuante(null);
     definirMenuAberto(false);
     window.scrollTo({ top: 0 });
   };
@@ -60,24 +62,21 @@ export default function Painel({ onLogout: aoSair }) {
       {menuAberto && <button type="button" aria-label="Fechar menu lateral" onClick={() => definirMenuAberto(false)} className="fixed inset-0 z-30 bg-black/30 lg:hidden" />}
       <aside aria-label="Menu lateral" className={`fixed inset-y-0 left-0 z-40 flex h-dvh flex-col overflow-hidden border-r border-divider bg-white ${menuAberto ? "w-sidebar max-w-[calc(100vw-1rem)]" : "w-20"}`}>
         <div className={`flex shrink-0 items-center py-5 [@media(max-height:600px)]:py-3 ${menuAberto ? "justify-between gap-2 px-4" : "justify-center"}`}>
-          <button type="button" onClick={() => definirMenuAberto(!menuAberto)} aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="menu-painel" className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand focus:outline-none focus:ring-2 focus:ring-brand">
+          <button type="button" onClick={() => { definirGrupoFlutuante(null); definirMenuAberto(!menuAberto); }} aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="menu-painel" className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand focus:outline-none focus:ring-2 focus:ring-brand">
             <Icone name={menuAberto ? "close" : "menu"} />
           </button>
         </div>
-        {menuAberto && (
-          <div className="shrink-0 px-4 pb-6 [@media(max-height:600px)]:hidden">
-          <div className="flex items-center gap-3">
+        <div className={`shrink-0 pb-6 [@media(max-height:600px)]:pb-3 ${menuAberto ? "px-4" : "px-3"}`}>
+          <div className={`flex items-center gap-3 ${menuAberto ? "" : "justify-center"}`}>
             <img src="/logo.jpg" alt="Logo da Associação Okinawa de Santa Clara" className="size-11 shrink-0 rounded-full object-contain" />
-            <div><p className="text-sm font-bold text-brand">Okinawa Santa Clara</p><p className="text-xs text-muted">Portal da Associação</p></div>
+            {menuAberto && <div><p className="text-sm font-bold text-brand">Okinawa Santa Clara</p><p className="text-xs text-muted">Portal da Associação</p></div>}
           </div>
         </div>
-        )}
-        <div id="menu-painel" className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-4 [scrollbar-width:thin] ${menuAberto ? "px-4" : "px-3 pt-[clamp(16px,calc(100dvh-600px),152px)]"}`}>
-          {menuAberto && <div className="mb-5">{CartaoUsuario}</div>}
+        <div id="menu-painel" className={`min-h-0 flex-1 pt-[60px] pb-4 ${menuAberto ? "overflow-x-hidden overflow-y-auto overscroll-contain px-4 [scrollbar-width:thin]" : "flex flex-col overflow-hidden px-3"}`}>
           {menuAberto && atualizando && avisoAtualizacao}
-          <nav className="space-y-1" aria-label="Área logada" aria-busy={atualizando}>
+          <nav className={`space-y-1 ${menuAberto ? "" : "min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:thin]"}`} aria-label="Área logada" aria-busy={atualizando}>
             {navegacao.map((item) => item.children ? (
-              <GrupoNavegacao key={item.id} item={item} screen={telaAtiva} onNavigate={navegar} compacto={!menuAberto} />
+              <GrupoNavegacao key={item.id} item={item} screen={telaAtiva} onNavigate={navegar} compacto={!menuAberto} grupoFlutuante={grupoFlutuante} definirGrupoFlutuante={definirGrupoFlutuante} />
             ) : menuAberto ? (
               <button key={item.id} type="button" onClick={() => navegar(item.id)} className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand ${telaAtiva === item.id ? "bg-brand-soft text-brand" : "text-ink hover:bg-canvas"}`} aria-current={telaAtiva === item.id ? "page" : undefined}><Icone name={item.icon} />{item.label}</button>
             ) : (
@@ -85,7 +84,13 @@ export default function Painel({ onLogout: aoSair }) {
             ))}
           </nav>
         </div>
-        <div className={`mt-auto shrink-0 border-t border-divider ${menuAberto ? "p-4 [@media(max-height:600px)]:p-3" : "p-3"}`}>
+        <div className={`mt-auto shrink-0 ${menuAberto ? "p-4 [@media(max-height:600px)]:p-3" : "p-3"}`}>
+          {menuAberto && <div className="mb-3">{CartaoUsuario}</div>}
+          {!menuAberto && (
+            <button type="button" onClick={() => navegar("settings")} aria-label={`Perfil de ${usuario.nome}`} title={`Perfil de ${usuario.nome}`} className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand text-sm font-bold text-white transition hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+              <span aria-hidden="true">{usuario.nome.trim().charAt(0)}</span>
+            </button>
+          )}
           <button type="button" onClick={aoSair} aria-label="Sair" title={!menuAberto ? "Sair" : undefined} className={`flex items-center gap-3 rounded-lg text-sm font-semibold text-muted hover:bg-danger-soft hover:text-danger focus:outline-none focus:ring-2 focus:ring-brand ${menuAberto ? "min-h-11 w-full px-4" : "mx-auto size-11 justify-center"}`}><Icone name="logout" />{menuAberto && "Sair"}</button>
         </div>
       </aside>
