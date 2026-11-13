@@ -2,7 +2,7 @@ import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icone } from "@/components/ui";
 
-export default function BotaoNavegacaoIcone({ pagina, ativo, onNavigate }) {
+export default function BotaoNavegacaoIcone({ pagina, ativo, onNavigate, expandido }) {
   const tooltipId = useId();
   const [posicao, definirPosicao] = useState(null);
   const fechar = () => definirPosicao(null);
@@ -32,6 +32,7 @@ export default function BotaoNavegacaoIcone({ pagina, ativo, onNavigate }) {
         aria-label={pagina.label}
         aria-describedby={posicao ? tooltipId : undefined}
         aria-current={ativo ? "page" : undefined}
+        aria-expanded={expandido}
         onMouseEnter={mostrar}
         onMouseLeave={fechar}
         onFocus={mostrar}

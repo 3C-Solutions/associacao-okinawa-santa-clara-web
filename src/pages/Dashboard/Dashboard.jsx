@@ -58,43 +58,34 @@ export default function Painel({ onLogout: aoSair }) {
     <div className="min-h-dvh bg-canvas text-ink">
       <a href="#conteudo-painel" className="sr-only z-50 rounded-lg bg-white p-3 text-brand focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Ir para o conteúdo</a>
       {menuAberto && <button type="button" aria-label="Fechar menu lateral" onClick={() => definirMenuAberto(false)} className="fixed inset-0 z-30 bg-black/30 lg:hidden" />}
-      <aside aria-label="Menu lateral" className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-divider bg-white ${menuAberto ? "w-sidebar max-w-[calc(100vw-1rem)]" : "w-20"}`}>
-        <div className={`flex items-center py-5 ${menuAberto ? "justify-between gap-2 px-4" : "justify-center"}`}>
+      <aside aria-label="Menu lateral" className={`fixed inset-y-0 left-0 z-40 flex h-dvh flex-col overflow-hidden border-r border-divider bg-white ${menuAberto ? "w-sidebar max-w-[calc(100vw-1rem)]" : "w-20"}`}>
+        <div className={`flex shrink-0 items-center py-5 [@media(max-height:600px)]:py-3 ${menuAberto ? "justify-between gap-2 px-4" : "justify-center"}`}>
           <button type="button" onClick={() => definirMenuAberto(!menuAberto)} aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="menu-painel" className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand focus:outline-none focus:ring-2 focus:ring-brand">
             <Icone name={menuAberto ? "close" : "menu"} />
           </button>
         </div>
-        <div className={`shrink-0 ${menuAberto ? "px-4 pb-6" : "h-[68px]"}`} aria-hidden={!menuAberto || undefined}>
         {menuAberto && (
+          <div className="shrink-0 px-4 pb-6 [@media(max-height:600px)]:hidden">
           <div className="flex items-center gap-3">
             <img src="/logo.jpg" alt="Logo da Associação Okinawa de Santa Clara" className="size-11 shrink-0 rounded-full object-contain" />
             <div><p className="text-sm font-bold text-brand">Okinawa Santa Clara</p><p className="text-xs text-muted">Portal da Associação</p></div>
           </div>
-        )}
         </div>
-        <div id="menu-painel" className={`min-h-0 flex-1 overflow-y-auto pb-4 ${menuAberto ? "px-4" : "px-3"}`}>
-          <div className={`mb-5 ${menuAberto ? "" : "h-16"}`} aria-hidden={!menuAberto || undefined}>{menuAberto && CartaoUsuario}</div>
+        )}
+        <div id="menu-painel" className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-4 [scrollbar-width:thin] ${menuAberto ? "px-4" : "px-3 pt-[clamp(16px,calc(100dvh-600px),152px)]"}`}>
+          {menuAberto && <div className="mb-5">{CartaoUsuario}</div>}
           {menuAberto && atualizando && avisoAtualizacao}
           <nav className="space-y-1" aria-label="Área logada" aria-busy={atualizando}>
-            {menuAberto ? navegacao.map((item) => item.children ? (
-              <GrupoNavegacao key={item.id} item={item} screen={telaAtiva} onNavigate={navegar} />
-            ) : (
+            {navegacao.map((item) => item.children ? (
+              <GrupoNavegacao key={item.id} item={item} screen={telaAtiva} onNavigate={navegar} compacto={!menuAberto} />
+            ) : menuAberto ? (
               <button key={item.id} type="button" onClick={() => navegar(item.id)} className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand ${telaAtiva === item.id ? "bg-brand-soft text-brand" : "text-ink hover:bg-canvas"}`} aria-current={telaAtiva === item.id ? "page" : undefined}><Icone name={item.icon} />{item.label}</button>
-            )) : navegacao.map((item) => (
-              <div key={item.id} className={item.children ? "space-y-1" : undefined} role={item.children ? "group" : undefined} aria-label={item.children ? item.label : undefined}>
-                {(item.children || [item]).map((pagina) => (
-                  <BotaoNavegacaoIcone
-                    key={pagina.id}
-                    pagina={pagina}
-                    ativo={telaAtiva === pagina.id}
-                    onNavigate={navegar}
-                  />
-                ))}
-              </div>
+            ) : (
+              <BotaoNavegacaoIcone key={item.id} pagina={item} ativo={telaAtiva === item.id} onNavigate={navegar} />
             ))}
           </nav>
         </div>
-        <div className={`mt-auto border-t border-divider ${menuAberto ? "p-4" : "p-3"}`}>
+        <div className={`mt-auto shrink-0 border-t border-divider ${menuAberto ? "p-4 [@media(max-height:600px)]:p-3" : "p-3"}`}>
           <button type="button" onClick={aoSair} aria-label="Sair" title={!menuAberto ? "Sair" : undefined} className={`flex items-center gap-3 rounded-lg text-sm font-semibold text-muted hover:bg-danger-soft hover:text-danger focus:outline-none focus:ring-2 focus:ring-brand ${menuAberto ? "min-h-11 w-full px-4" : "mx-auto size-11 justify-center"}`}><Icone name="logout" />{menuAberto && "Sair"}</button>
         </div>
       </aside>

@@ -1,12 +1,33 @@
 import { useState } from "react";
 import { Icone } from "@/components/ui";
+import BotaoNavegacaoIcone from "./IconNavButton.jsx";
 
 // Grupo expansível que utiliza o ícone definido no catálogo de navegação.
-export default function GrupoNavegacao({ item: item, screen: tela, onNavigate: aoNavegar }) {
+export default function GrupoNavegacao({ item: item, screen: tela, onNavigate: aoNavegar, compacto = false }) {
   const temFilhoAtivo = item.children.some((filho) => filho.id === tela);
   // a escolha do clique vale para a tela atual; ao mudar de tela, a pasta abre sozinha só se a tela ativa for uma das filhas
   const [preferencia, definirPreferencia] = useState({ screen: null, open: false });
   const abrir = preferencia.screen === tela ? preferencia.open : temFilhoAtivo;
+
+  if (compacto) return (
+    <div>
+      <BotaoNavegacaoIcone
+        pagina={{ ...item, icon: item.icon === "folder" && abrir ? "folderOpen" : item.icon }}
+        ativo={temFilhoAtivo && !abrir}
+        expandido={abrir}
+        onNavigate={() => definirPreferencia({ screen: tela, open: !abrir })}
+      />
+      {abrir && (
+        <ul className="mt-1 space-y-1 rounded-lg bg-canvas py-1" aria-label={item.label}>
+          {item.children.map((filho) => (
+            <li key={filho.id}>
+              <BotaoNavegacaoIcone pagina={filho} ativo={tela === filho.id} onNavigate={aoNavegar} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 
   return (
     <div>
