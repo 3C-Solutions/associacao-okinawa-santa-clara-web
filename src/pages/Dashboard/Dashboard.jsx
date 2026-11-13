@@ -63,14 +63,13 @@ export default function Painel({ onLogout: aoSair }) {
       <aside aria-label="Menu lateral" className={`fixed inset-y-0 left-0 z-40 flex h-dvh flex-col overflow-hidden border-r border-divider bg-white ${menuAberto ? "w-sidebar max-w-[calc(100vw-1rem)]" : "w-20"}`}>
         <div className={`flex shrink-0 items-center py-5 [@media(max-height:600px)]:py-3 ${menuAberto ? "justify-between gap-2 px-4" : "justify-center"}`}>
           <button type="button" onClick={() => { definirGrupoFlutuante(null); definirMenuAberto(!menuAberto); }} aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="menu-painel" className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand focus:outline-none focus:ring-2 focus:ring-brand">
-            <Icone name={menuAberto ? "close" : "menu"} />
+            <Icone name="menu" />
           </button>
         </div>
         <div className={`shrink-0 pb-6 [@media(max-height:600px)]:pb-3 ${menuAberto ? "px-4" : "px-3"}`}>
-          <div className={`flex items-center gap-3 ${menuAberto ? "" : "justify-center"}`}>
-            <img src="/logo.jpg" alt="Logo da Associação Okinawa de Santa Clara" className="size-11 shrink-0 rounded-full object-contain" />
-            {menuAberto && <div><p className="text-sm font-bold text-brand">Okinawa Santa Clara</p><p className="text-xs text-muted">Portal da Associação</p></div>}
-          </div>
+          <button type="button" onClick={() => navegar("settings")} aria-label={`Perfil de ${usuario.nome}`} title={`Perfil de ${usuario.nome}`} className={menuAberto ? "w-full rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-brand" : "mx-auto grid size-11 place-items-center rounded-full bg-brand text-sm font-bold text-white transition hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"}>
+            {menuAberto ? CartaoUsuario : <span aria-hidden="true">{usuario.nome.trim().charAt(0)}</span>}
+          </button>
         </div>
         <div id="menu-painel" className={`min-h-0 flex-1 pt-[60px] pb-4 ${menuAberto ? "overflow-x-hidden overflow-y-auto overscroll-contain px-4 [scrollbar-width:thin]" : "flex flex-col overflow-hidden px-3"}`}>
           {menuAberto && atualizando && avisoAtualizacao}
@@ -85,12 +84,6 @@ export default function Painel({ onLogout: aoSair }) {
           </nav>
         </div>
         <div className={`mt-auto shrink-0 ${menuAberto ? "p-4 [@media(max-height:600px)]:p-3" : "p-3"}`}>
-          {menuAberto && <div className="mb-3">{CartaoUsuario}</div>}
-          {!menuAberto && (
-            <button type="button" onClick={() => navegar("settings")} aria-label={`Perfil de ${usuario.nome}`} title={`Perfil de ${usuario.nome}`} className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-brand text-sm font-bold text-white transition hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
-              <span aria-hidden="true">{usuario.nome.trim().charAt(0)}</span>
-            </button>
-          )}
           <button type="button" onClick={aoSair} aria-label="Sair" title={!menuAberto ? "Sair" : undefined} className={`flex items-center gap-3 rounded-lg text-sm font-semibold text-muted hover:bg-danger-soft hover:text-danger focus:outline-none focus:ring-2 focus:ring-brand ${menuAberto ? "min-h-11 w-full px-4" : "mx-auto size-11 justify-center"}`}><Icone name="logout" />{menuAberto && "Sair"}</button>
         </div>
       </aside>
