@@ -3,7 +3,7 @@ import { mascararCep } from "@/lib/data.js";
 import { consultarCep } from "@/lib/viacep.js";
 import { Campo } from "./Form.jsx";
 
-export default function CampoCep({ value, onChange, onAddressFound, error, className = "", readOnly = false }) {
+export default function CampoCep({ value, onChange, onAddressFound, error, required, className = "", readOnly = false }) {
   const [erroConsulta, definirErroConsulta] = useState("");
   const [mensagem, definirMensagem] = useState("");
   const requisicao = useRef(null);
@@ -47,6 +47,7 @@ export default function CampoCep({ value, onChange, onAddressFound, error, class
       error={erroConsulta || error}
       hint={readOnly ? undefined : mensagem || ""}
       readOnly={readOnly}
+      required={required}
       placeholder="00000-000"
     />
   );

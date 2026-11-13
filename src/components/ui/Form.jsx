@@ -18,7 +18,7 @@ export function Campo({ label: rotulo, value: valor, onChange: aoAlterar, type: 
   return (
     <EstruturaCampo label={rotulo} error={erro} hint={dica} required={obrigatorio} className={nomeClasse}>
       <span className={baseCaixa(erro, somenteLeitura || desabilitado)}>
-        <input type={tipo} value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} placeholder={textoExemplo} readOnly={somenteLeitura} disabled={desabilitado} min={minimo} max={maximo} maxLength={tamanhoMaximo} step={etapa} autoComplete={autoComplete} aria-invalid={erro ? true : undefined} className={baseEntrada} />
+        <input type={tipo} value={valor ?? ""} onChange={(evento) => aoAlterar?.(evento.target.value)} placeholder={textoExemplo} readOnly={somenteLeitura} disabled={desabilitado} min={minimo} max={maximo} maxLength={tamanhoMaximo} step={etapa} autoComplete={autoComplete} aria-required={obrigatorio} aria-invalid={erro ? true : undefined} className={baseEntrada} />
         {sufixo}
       </span>
     </EstruturaCampo>

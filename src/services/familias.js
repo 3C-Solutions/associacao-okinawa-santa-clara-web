@@ -18,11 +18,15 @@ export function validarCadastroFamilia(formulario) {
   const erros = {};
   if ((formulario.surname || "").trim().length < 2) erros.surname = "Informe o sobrenome da família com pelo menos 2 caracteres.";
   if (!(formulario.address || "").trim()) erros.address = "Informe o endereço.";
+  if (!(formulario.district || "").trim()) erros.district = "Informe o bairro.";
+  if (!(formulario.city || "").trim()) erros.city = "Informe a cidade.";
   for (const campo of ["surname", "address", "number", "complement", "district", "city"]) {
     if ((formulario[campo] || "").trim().length > 255) erros[campo] = "Use no máximo 255 caracteres.";
   }
-  if (formulario.uf && !/^[A-Za-z]{2}$/.test(formulario.uf)) erros.uf = "Use a sigla com 2 letras.";
-  if (formulario.cep && !/^\d{5}-?\d{3}$/.test(formulario.cep)) erros.cep = "O CEP deve ter 8 dígitos.";
+  if (!(formulario.uf || "").trim()) erros.uf = "Informe a UF.";
+  else if (!/^[A-Za-z]{2}$/.test(formulario.uf)) erros.uf = "Use a sigla com 2 letras.";
+  if (!(formulario.cep || "").trim()) erros.cep = "Informe o CEP.";
+  else if (!/^\d{5}-?\d{3}$/.test(formulario.cep)) erros.cep = "O CEP deve ter 8 dígitos.";
   return erros;
 }
 
