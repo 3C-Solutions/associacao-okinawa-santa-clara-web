@@ -1,5 +1,6 @@
 export function Icone({ name: nome, size: tamanho = 20 }) {
   const caminhos = {
+    departments: <><rect x="9" y="2" width="6" height="5" rx="1" /><path d="M12 7v4M5 16v-5h14v5M12 11v5" /><rect x="2" y="16" width="6" height="5" rx="1" /><rect x="9" y="16" width="6" height="5" rx="1" /><rect x="16" y="16" width="6" height="5" rx="1" /></>,
     home: <><path d="m3 11 9-8 9 8" /><path d="M5 10v10h14V10M9 20v-6h6v6" /></>,
     wallet: <><path d="M4 6h14a2 2 0 0 1 2 2v10H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h13" /><path d="M16 11h6v4h-6a2 2 0 0 1 0-4Z" /></>,
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></>,

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
-import { Botao, Icone, Titulo } from "@/components/ui";
+import { Icone, Titulo } from "@/components/ui";
 import GrupoNavegacao from "./components/NavGroup.jsx";
+import BotaoNavegacaoIcone from "./components/IconNavButton.jsx";
 import TelaPrototipo from "./screens/Prototype/PrototypeScreen.jsx";
 import { NAVEGACAO_PAINEL, filtrarNavegacao, listarTelas, resolverTela } from "./navigation.js";
 
@@ -9,6 +10,7 @@ export default function Painel({ onLogout: aoSair }) {
   const { usuario, status, podeAcessar, atualizando } = usarAutenticacao();
   const [tela, definirTela] = useState("home");
   const [menuAberto, definirMenuAberto] = useState(false);
+  const [grupoFlutuante, definirGrupoFlutuante] = useState(null);
   const navegacao = filtrarNavegacao(NAVEGACAO_PAINEL, podeAcessar);
   const telas = listarTelas(navegacao);
   // A resolução ocorre antes da renderização, inclusive no primeiro quadro após uma revogação.
@@ -31,6 +33,7 @@ export default function Painel({ onLogout: aoSair }) {
   const navegar = (identificador) => {
     if (!telas.some((item) => item.id === identificador)) return;
     definirTela(identificador);
+    definirGrupoFlutuante(null);
     definirMenuAberto(false);
     window.scrollTo({ top: 0 });
   };
@@ -54,44 +57,39 @@ export default function Painel({ onLogout: aoSair }) {
   );
 
   return (
-    <div className="min-h-dvh bg-canvas text-ink lg:flex">
+    <div className="min-h-dvh bg-canvas text-ink">
       <a href="#conteudo-painel" className="sr-only z-50 rounded-lg bg-white p-3 text-brand focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Ir para o conteúdo</a>
-      <aside className="border-b border-divider bg-white lg:fixed lg:inset-y-0 lg:flex lg:w-sidebar lg:flex-col lg:border-b-0 lg:border-r">
-        <div className="flex w-full items-center justify-between px-5 py-4 lg:block lg:px-6 lg:py-7">
-          <div className="flex items-center gap-3">
-            <img src="/logo.jpg" alt="Logo da Associação Okinawa de Santa Clara" className="size-11 shrink-0 rounded-full object-contain" />
-            <div><p className="text-sm font-bold text-brand">Okinawa Santa Clara</p><p className="text-xs text-muted">Portal da Associação</p></div>
-          </div>
-          <button type="button" onClick={() => definirMenuAberto(!menuAberto)} aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="menu-movel" className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand focus:outline-none focus:ring-2 focus:ring-brand lg:hidden">
-            <Icone name={menuAberto ? "close" : "menu"} />
+      {menuAberto && <button type="button" aria-label="Fechar menu lateral" onClick={() => definirMenuAberto(false)} className="fixed inset-0 z-30 bg-black/30 lg:hidden" />}
+      <aside aria-label="Menu lateral" className={`fixed inset-y-0 left-0 z-40 flex h-dvh flex-col overflow-hidden border-r border-divider bg-white ${menuAberto ? "w-sidebar max-w-[calc(100vw-1rem)]" : "w-20"}`}>
+        <div className={`flex shrink-0 items-center py-5 [@media(max-height:600px)]:py-3 ${menuAberto ? "justify-between gap-2 px-4" : "justify-center"}`}>
+          <button type="button" onClick={() => { definirGrupoFlutuante(null); definirMenuAberto(!menuAberto); }} aria-label={menuAberto ? "Fechar menu" : "Abrir menu"} aria-expanded={menuAberto} aria-controls="menu-painel" className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-soft text-brand focus:outline-none focus:ring-2 focus:ring-brand">
+            <Icone name="menu" />
           </button>
         </div>
-        {menuAberto && (
-          <div id="menu-movel" className="space-y-3 border-t border-divider p-4 lg:hidden">
-            {CartaoUsuario}
-            <Botao variant="outline" onClick={aoSair} className="w-full"><Icone name="logout" /> Sair</Botao>
-          </div>
-        )}
-        <div className="hidden overflow-y-auto px-4 lg:block">
-          <div className="mb-5">{CartaoUsuario}</div>
-          {atualizando && avisoAtualizacao}
-          <nav className="space-y-1" aria-label="Área logada" aria-busy={atualizando}>
+        <div className={`shrink-0 pb-6 [@media(max-height:600px)]:pb-3 ${menuAberto ? "px-4" : "px-3"}`}>
+          <button type="button" onClick={() => navegar("settings")} aria-label={`Perfil de ${usuario.nome}`} title={`Perfil de ${usuario.nome}`} className={menuAberto ? "w-full rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-brand" : "mx-auto grid size-11 place-items-center rounded-full bg-brand text-sm font-bold text-white transition hover:bg-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"}>
+            {menuAberto ? CartaoUsuario : <span aria-hidden="true">{usuario.nome.trim().charAt(0)}</span>}
+          </button>
+        </div>
+        <div id="menu-painel" className={`flex min-h-0 flex-1 flex-col overflow-hidden pb-4 ${menuAberto ? "px-4" : "px-3"}`}>
+          <div aria-hidden="true" className="max-h-[60px] min-h-0 flex-1" />
+          {menuAberto && atualizando && avisoAtualizacao}
+          <nav className="min-h-0 space-y-1 overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:thin]" aria-label="Área logada" aria-busy={atualizando}>
             {navegacao.map((item) => item.children ? (
-              <GrupoNavegacao key={item.id} item={item} screen={telaAtiva} onNavigate={navegar} />
-            ) : (
+              <GrupoNavegacao key={item.id} item={item} screen={telaAtiva} onNavigate={navegar} compacto={!menuAberto} grupoFlutuante={grupoFlutuante} definirGrupoFlutuante={definirGrupoFlutuante} />
+            ) : menuAberto ? (
               <button key={item.id} type="button" onClick={() => navegar(item.id)} className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-4 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-brand ${telaAtiva === item.id ? "bg-brand-soft text-brand" : "text-ink hover:bg-canvas"}`} aria-current={telaAtiva === item.id ? "page" : undefined}><Icone name={item.icon} />{item.label}</button>
+            ) : (
+              <BotaoNavegacaoIcone key={item.id} pagina={item} ativo={telaAtiva === item.id} onNavigate={navegar} />
             ))}
           </nav>
         </div>
-        <div className="mt-auto hidden border-t border-divider p-4 lg:block">
-          <button type="button" onClick={aoSair} className="flex min-h-11 w-full items-center gap-3 rounded-lg px-4 text-sm font-semibold text-muted hover:bg-danger-soft hover:text-danger"><Icone name="logout" />Sair</button>
+        <div className={`mt-auto shrink-0 ${menuAberto ? "p-4 [@media(max-height:600px)]:p-3" : "p-3"}`}>
+          <button type="button" onClick={aoSair} aria-label="Sair" title={!menuAberto ? "Sair" : undefined} className={`flex items-center gap-3 rounded-lg text-sm font-semibold text-muted hover:bg-danger-soft hover:text-danger focus:outline-none focus:ring-2 focus:ring-brand ${menuAberto ? "min-h-11 w-full px-4" : "mx-auto size-11 justify-center"}`}><Icone name="logout" />{menuAberto && "Sair"}</button>
         </div>
       </aside>
-      <div className="min-w-0 flex-1 lg:ml-sidebar">
-        {atualizando && <div className="px-4 pt-3 lg:hidden">{avisoAtualizacao}</div>}
-        <nav aria-label="Navegação mobile" aria-busy={atualizando} className="flex gap-2 overflow-x-auto border-b border-divider bg-white px-4 py-2 lg:hidden">
-          {telas.map((item) => <button key={item.id} type="button" onClick={() => navegar(item.id)} aria-current={telaAtiva === item.id ? "page" : undefined} className={`min-h-11 shrink-0 rounded-full px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand ${telaAtiva === item.id ? "bg-brand text-white" : "bg-brand-soft text-brand"}`}>{item.label}</button>)}
-        </nav>
+      <div className={`min-w-0 ml-20 ${menuAberto ? "lg:ml-sidebar" : ""}`}>
+        {atualizando && !menuAberto && <div className="mx-auto max-w-dashboard px-4 pt-3 md:px-8">{avisoAtualizacao}</div>}
         <main id="conteudo-painel" tabIndex={-1} className="mx-auto max-w-dashboard p-4 focus:outline-none md:p-8">
           <div className="mb-8">
             <p className="mb-1 text-sm font-semibold text-brand">{usuario.funcaoSistema.nome}</p>

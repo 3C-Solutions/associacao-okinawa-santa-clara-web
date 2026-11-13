@@ -17,14 +17,10 @@ export const NAVEGACAO_PAINEL = [
  id: "registrations", label: "Cadastros", icon: "folder", children: [
  { id: "users", label: "Usuários", icon: "person", permissao: "TELA_USUARIOS", componente: AssociadosAdmin },
  { id: "families", label: "Famílias", icon: "groups", permissao: "TELA_FAMILIAS", componente: Familias },
- { id: "departments", label: "Departamentos", icon: "groups", permissao: "TELA_DEPARTAMENTOS", componente: Departamentos, prototipo: true },
+ { id: "departments", label: "Departamentos", icon: "departments", permissao: "TELA_DEPARTAMENTOS", componente: Departamentos, prototipo: true },
  ],
  },
- {
- id: "system-administration", label: "Administração do Sistema", icon: "personSettings", children: [
- { id: "system-roles", label: "Funções do sistema", icon: "settings", permissao: "TELA_FUNCOES_SISTEMA", componente: FuncoesSistema },
- ],
- },
+ { id: "system-roles", label: "Funções do sistema", icon: "personSettings", permissao: "TELA_FUNCOES_SISTEMA", componente: FuncoesSistema },
  { id: "settings", label: "Configurações", icon: "settings", comum: true, componente: Configuracoes },
 ];
 export function filtrarNavegacao(itens, podeAcessar) {
