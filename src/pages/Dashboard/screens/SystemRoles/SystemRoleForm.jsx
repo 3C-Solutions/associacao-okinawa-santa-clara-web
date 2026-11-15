@@ -67,7 +67,7 @@ export default function FormularioFuncaoSistema({ service: servico, onClose: aoF
       <form onSubmit={enviar} noValidate aria-busy={salvando} className="space-y-5">
         <Campo label="Nome da função" value={formulario.nome} onChange={(valor) => definir("nome", valor)} error={erros.nome} required maxLength={100} disabled={salvando} />
         <CampoAreaTexto label="Descrição (opcional)" value={formulario.descricao} onChange={(valor) => definir("descricao", valor)} error={erros.descricao} rows={3} maxLength={255} disabled={salvando} />
-        <SelecaoFuncionalidades catalogo={catalogo} selecionadas={formulario.idsFuncionalidades} aoSelecionar={selecionar} aoRemoverIndisponiveis={(ids) => definir("idsFuncionalidades", ids)} erro={erros.idsFuncionalidades} salvando={salvando} />
+        <SelecaoFuncionalidades catalogo={catalogo} selecionadas={formulario.idsFuncionalidades} aoSelecionar={selecionar} aoSelecionarTodas={(ids) => definir("idsFuncionalidades", ids)} aoRemoverIndisponiveis={(ids) => definir("idsFuncionalidades", ids)} erro={erros.idsFuncionalidades} salvando={salvando} />
         <p className="text-xs text-muted">Após o cadastro, atribua esta função aos usuários pela tela de edição de usuários.</p>
         {erroEnvio && <p role="alert" className="text-sm font-semibold text-danger">{erroEnvio}</p>}
         <button type="submit" className="sr-only" tabIndex={-1} disabled={salvando || !catalogoPronto}>Cadastrar função</button>
