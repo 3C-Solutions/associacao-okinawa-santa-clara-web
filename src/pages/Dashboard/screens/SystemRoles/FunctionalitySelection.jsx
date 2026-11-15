@@ -1,11 +1,25 @@
 import { Botao } from "@/components/ui";
 
-export default function SelecaoFuncionalidades({ catalogo, selecionadas, aoSelecionar, aoRemoverIndisponiveis, erro, salvando, permiteVazio = false }) {
+export default function SelecaoFuncionalidades({ catalogo, selecionadas, aoSelecionar, aoSelecionarTodas, aoRemoverIndisponiveis, erro, salvando, permiteVazio = false }) {
   const pronto = catalogo.dados !== null && !catalogo.carregando && !catalogo.erro;
   const indisponiveis = selecionadas.filter((id) => catalogo.dados && !catalogo.dados.some((item) => item.id === id));
+  const todasSelecionadas = !!catalogo.dados?.length && catalogo.dados.every((item) => selecionadas.includes(item.id));
+  const parcialmenteSelecionadas = !todasSelecionadas && !!catalogo.dados?.some((item) => selecionadas.includes(item.id));
   return <>
     <fieldset disabled={salvando || !pronto} aria-busy={catalogo.carregando} className="space-y-3">
       <legend className="mb-2 text-sm font-semibold">Funcionalidades autorizadas{!permiteVazio && <span className="text-danger"> *</span>}</legend>
+      {pronto && catalogo.dados?.length > 0 && <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-divider p-3 has-disabled:cursor-not-allowed has-disabled:bg-gray-100">
+        <input
+          type="checkbox"
+          checked={todasSelecionadas}
+          ref={(elemento) => { if (elemento) elemento.indeterminate = parcialmenteSelecionadas; }}
+          onChange={(evento) => aoSelecionarTodas(evento.target.checked
+            ? [...new Set([...selecionadas, ...catalogo.dados.map((item) => item.id)])]
+            : [])}
+          className="size-4 shrink-0 accent-brand"
+        />
+        <span className="text-sm font-semibold">Selecionar tudo</span>
+      </label>}
       <p className="text-sm text-muted">{permiteVazio ? "Marque os acessos permitidos. Desmarcar todas as opções deixa o perfil com acesso apenas ao Início." : "Selecione pelo menos uma funcionalidade para esta função."}</p>
       {catalogo.carregando ? <p role="status" className="text-sm text-muted">Carregando funcionalidades...</p> : catalogo.erro ? (
         <p role="alert" className="text-sm text-danger">{catalogo.erro}</p>

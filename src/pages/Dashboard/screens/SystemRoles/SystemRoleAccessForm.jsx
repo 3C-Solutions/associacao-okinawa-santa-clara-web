@@ -52,7 +52,7 @@ export function CamposAcessosFuncao({ funcao, funcionalidades, service: servico,
       <Campo label="Nome da função" value={funcao.nome} readOnly />
       <CampoAreaTexto label="Descrição" value={funcao.descricao || "Não informada"} readOnly rows={2} />
       <p className="text-sm text-muted">As alterações serão aplicadas a todos os usuários vinculados a esta função.</p>
-      <SelecaoFuncionalidades catalogo={{ dados: funcionalidades, carregando: false, erro: null }} selecionadas={selecionadas} aoSelecionar={selecionar} aoRemoverIndisponiveis={definirSelecionadas} salvando={salvando} permiteVazio />
+      <SelecaoFuncionalidades catalogo={{ dados: funcionalidades, carregando: false, erro: null }} selecionadas={selecionadas} aoSelecionar={selecionar} aoSelecionarTodas={(ids) => { definirSelecionadas(ids); definirErro(null); }} aoRemoverIndisponiveis={definirSelecionadas} salvando={salvando} permiteVazio />
       {removeAdministracao && <p role="status" className="rounded-lg bg-warning-soft p-3 text-sm text-warning">Você está retirando o acesso administrativo da sua própria função. Após salvar, esta tela será fechada e você voltará ao Início.</p>}
       {erro && <p role="alert" className="text-sm font-semibold text-danger">{erro}</p>}
       {erro && <div className="space-y-2">
