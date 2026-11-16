@@ -8,6 +8,7 @@ import Graficos from "./Charts.jsx";
 import DespesasForm from "./DespesasForm.jsx";
 import PagamentosDER from "./PagamentosDER.jsx";
 import { criarServicoFinanceiro } from "@/services/financeiroApi.js";
+import PainelReembolsos from "./requests/RefundsPanel.jsx";
 
 function Resumo({ label, value, detail, principal, tone = "text-muted" }) {
   return <Cartao className={`min-w-0 p-5 ${principal ? "border-brand/20 bg-brand-soft/40" : ""}`}>
@@ -30,6 +31,7 @@ export default function Financas() {
   const [erro, setErro] = useState("");
   const [versao, setVersao] = useState(0);
   const [aba, setAba] = useState("ledger");
+  const opcoesAbas = [{ value: "ledger", label: "Lançamentos" }, { value: "payments", label: "Verificar pagamentos" }, { value: "refunds", label: "Reembolsos" }];
   const [formulario, setFormulario] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const operacaoEmCurso = useRef(false);
@@ -100,8 +102,9 @@ export default function Financas() {
     { key: "status", label: "Status", render: (item) => item.id.startsWith("ENT-") && item.status === "Pago" ? <span className="text-sm font-semibold text-success">Recebido</span> : <SeloStatus status={item.status} /> },
   ];
   if (!permitido) return <EstadoVazio icon="wallet" title="Sem acesso ao Financeiro">Seu perfil não tem permissão para consultar esta tela.</EstadoVazio>;
-  if (carregando && !dashboard) return <Cartao className="p-8"><p role="status" className="text-sm text-muted">Carregando resumo e lançamentos financeiros...</p></Cartao>;
-  if (!dashboard) return <Cartao className="space-y-4 p-6"><p role="alert" className="text-danger">{erro || "Não foi possível carregar o financeiro."}</p><Botao onClick={atualizar}>Tentar novamente</Botao></Cartao>;
+  if (aba === "refunds") return <div className="space-y-6"><Abas value={aba} onChange={setAba} options={opcoesAbas} /><PainelReembolsos /></div>;
+  if (carregando && !dashboard) return <div className="space-y-6"><Abas value={aba} onChange={setAba} options={opcoesAbas} /><Cartao className="p-8"><p role="status" className="text-sm text-muted">Carregando resumo e lançamentos financeiros...</p></Cartao></div>;
+  if (!dashboard) return <div className="space-y-6"><Abas value={aba} onChange={setAba} options={opcoesAbas} /><Cartao className="space-y-4 p-6"><p role="alert" className="text-danger">{erro || "Não foi possível carregar o financeiro."}</p><Botao onClick={atualizar}>Tentar novamente</Botao></Cartao></div>;
   const resumo = dashboard.resumo;
   const variacao = resumo.variacaoMensal;
   const confirmados = filtrado.filter((item) => item.status === "Pago");
@@ -121,7 +124,7 @@ export default function Financas() {
       <Resumo label="Entradas no ano" value={resumo.entradasAnuais} detail="Entradas recebidas e pagamentos confirmados" tone="text-success" />
       <Resumo label="Saídas no ano" value={resumo.saidasAnuais} detail="Despesas com status pago" tone="text-danger" />
     </div>
-    <Abas value={aba} onChange={setAba} options={[{ value: "ledger", label: "Lançamentos" }, { value: "payments", label: "Verificar pagamentos" }]} />
+    <Abas value={aba} onChange={setAba} options={opcoesAbas} />
     {aba === "payments" ? <PagamentosDER api={api} onChange={atualizar} /> : <>
       <Graficos all={todos} year={String(ano)} />
       <section className="space-y-4" aria-label="Lançamentos financeiros">

@@ -205,6 +205,12 @@ npm run build
 A revisão visual foi feita em 1440 px e 390 px, com dados de teste isolados.
 A interface de pagamentos utiliza os códigos dos cadastros existentes: o backend
 atual ainda não fornece catálogos de departamentos e cobranças para seletores por nome.
+
+A aba Reembolsos permite registrar solicitações com comprovante, acompanhar o status e,
+para usuários cuja função contenha “Financeiro”, aprovar ou recusar pedidos de outros
+usuários. Nesta etapa, os reembolsos são armazenados no navegador e compartilhados entre
+as contas usadas nele; não são sincronizados com o backend nem entram no saldo financeiro.
+Use essa tela somente como protótipo até a integração dos endpoints de reembolso.
 ## Integração de famílias
 
 Cadastros › Famílias reutiliza a tabela e o formulário existentes, com dados reais via
