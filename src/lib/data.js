@@ -169,6 +169,16 @@ export function baixarCsv(nomeArquivo, cabecalho, linhas) {
   URL.revokeObjectURL(enderecoUrl);
 }
 
+export function baixarCsvRecebido(resposta, nomeArquivo) {
+  if (!(resposta?.data instanceof Blob)) throw new Error("O serviço não retornou um arquivo CSV válido.");
+  const enderecoUrl = URL.createObjectURL(resposta.data);
+  const elementoA = document.createElement("a");
+  elementoA.href = enderecoUrl;
+  elementoA.download = nomeArquivo;
+  elementoA.click();
+  window.setTimeout(() => URL.revokeObjectURL(enderecoUrl), 1000);
+}
+
 // ---------- dados iniciais (datas relativas a hoje) ----------
 export function criarDadosIniciais() {
   const hoje = hojeISO();

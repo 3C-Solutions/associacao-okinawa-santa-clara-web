@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { usarArmazenamento } from "@/store";
-import { baixarCsv, formatarData, formatarMoeda, chaveMes, hojeISO } from "@/lib/data.js";
+import { baixarCsvRecebido, formatarData, formatarMoeda, chaveMes, hojeISO } from "@/lib/data.js";
 import { somar } from "@/lib/finance.js";
 import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, SeloStatus, Abas, Cartao } from "@/components/ui";
 import Graficos from "./Charts.jsx";
@@ -31,6 +31,7 @@ export default function Financas() {
   const [erro, setErro] = useState("");
   const [versao, setVersao] = useState(0);
   const [aba, setAba] = useState("ledger");
+  const [exportando, setExportando] = useState(false);
   const opcoesAbas = [{ value: "ledger", label: "Lançamentos" }, { value: "payments", label: "Verificar pagamentos" }, { value: "refunds", label: "Reembolsos" }];
   const [formulario, setFormulario] = useState(null);
   const [ocupado, setOcupado] = useState(false);
@@ -58,6 +59,7 @@ export default function Financas() {
       .filter((item) => !consulta || `${item.description} ${item.category}`.toLocaleLowerCase("pt-BR").includes(consulta))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [todos, filtros, ano, hoje]);
+  const possuiExportaveis = filtrado.some((item) => item.id.startsWith("ENT-") || item.id.startsWith("DES-"));
   const executar = async (operacao, mensagem, propagar = false) => {
     if (operacaoEmCurso.current) return false;
     operacaoEmCurso.current = true;
@@ -88,10 +90,29 @@ export default function Financas() {
     const salvo = await executar(() => formulario.id ? editar(Number(formulario.id.slice(4)), dados) : criar(dados), entrada ? "Entrada salva com sucesso" : "Despesa salva com sucesso", true);
     if (salvo) setFormulario(null);
   };
-  const exportar = () => {
-    baixarCsv(`financeiro-${hoje}.csv`, ["Data", "Descrição", "Categoria", "Tipo", "Valor", "Status"],
-      filtrado.map((item) => [formatarData(item.date), item.description, item.category, item.type === "in" ? "Entrada" : "Saída", item.amount.toFixed(2).replace(".", ","), statusLancamento(item)]));
-    aviso("Arquivo CSV exportado");
+  const exportar = async () => {
+    setExportando(true);
+    try {
+      const inicioMes = `${ano}-${String(mes).padStart(2, "0")}-01`;
+      const fimMes = `${ano}-${String(mes).padStart(2, "0")}-${String(new Date(ano, mes, 0).getDate()).padStart(2, "0")}`;
+      const dataInicio = filtros.period === "Este mês" ? inicioMes : filtros.period === "Este ano" ? `${ano}-01-01` : undefined;
+      const dataFim = filtros.period === "Este mês" ? fimMes : filtros.period === "Este ano" ? `${ano}-12-31` : undefined;
+      const arquivo = await api.exportarCsv({
+        ano,
+        mes,
+        dataInicio,
+        dataFim,
+        tipo: filtros.type === "Todos" ? undefined : filtros.type === "Entradas" ? "ENTRADA" : "SAIDA",
+        status: filtros.status === "Todos" ? undefined : filtros.status,
+        busca: filtros.q.trim(),
+      });
+      baixarCsvRecebido(arquivo, `financeiro-${hoje}.csv`);
+      aviso("Arquivo CSV exportado");
+    } catch (falha) {
+      aviso(falha.message, "error");
+    } finally {
+      setExportando(false);
+    }
   };
   const definirFiltro = (campo) => (valor) => setFiltros((anterior) => ({ ...anterior, [campo]: valor }));
   const colunas = [
@@ -128,7 +149,7 @@ export default function Financas() {
     {aba === "payments" ? <PagamentosDER api={api} onChange={atualizar} /> : <>
       <Graficos all={todos} year={String(ano)} />
       <section className="space-y-4" aria-label="Lançamentos financeiros">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status.</p></div><Botao variant="outline" disabled={!filtrado.length} onClick={exportar}><Icone name="download" size={18} /> Exportar CSV</Botao></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status. A exportação inclui despesas e entradas avulsas.</p></div><Botao variant="outline" disabled={!possuiExportaveis || exportando || carregando || !!erro} onClick={exportar}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar CSV"}</Botao></div>
         <Cartao className="space-y-4 p-4 sm:p-5">
           <div className="grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
             <div><span className="mb-2 block text-sm font-semibold">Buscar lançamento</span><EntradaBusca value={filtros.q} onChange={definirFiltro("q")} placeholder="Descrição ou categoria" /></div>

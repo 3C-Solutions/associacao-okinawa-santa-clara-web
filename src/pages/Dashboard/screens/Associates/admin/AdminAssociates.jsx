@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { usarRecursoApi } from "@/hooks/useApiResource.js";
 import { criarServicoUsuarios } from "@/services/usuarios.js";
-import { baixarCsv, hojeISO, mascararTelefone } from "@/lib/data.js";
+import { baixarCsvRecebido, hojeISO, mascararTelefone } from "@/lib/data.js";
 import { Selo, Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, Cartao } from "@/components/ui";
 import DetalhesUsuario from "./UserDetails.jsx";
 import FormularioEdicaoUsuario from "./UserEditForm.jsx";
@@ -21,6 +21,8 @@ export default function AssociadosAdmin() {
   const [mensagem, definirMensagem] = useState(null);
   const [cadastrando, definirCadastrando] = useState(false);
   const [excluindo, definirExcluindo] = useState(null);
+  const [exportando, definirExportando] = useState(false);
+  const [erroExportacao, definirErroExportacao] = useState("");
 
   const funcoes = useMemo(() => {
     const grupos = new Map();
@@ -67,11 +69,22 @@ export default function AssociadosAdmin() {
     definirMensagem(`Usuário ${usuario.name} excluído (inativado).`);
   };
 
-  const exportarCsv = () => {
-    const celula = (valor) => /^[\s]*[=+\-@]/.test(String(valor || "")) ? `'${valor}` : valor;
-    baixarCsv(`usuarios-${hojeISO()}.csv`, ["Nome", "Função", "E-mail", "Telefone", "Família", "Vínculo", "Departamentos", "Situação"],
-      linhas.map((usuario) => [usuario.name, usuario.role, usuario.email, usuario.phone, usuario.family, usuario.note, "Não disponível", usuario.ativo ? "Ativo" : "Inativo"].map(celula)));
-    definirMensagem("Arquivo CSV gerado com os usuários filtrados.");
+  const exportarCsv = async () => {
+    definirExportando(true);
+    definirErroExportacao("");
+    try {
+      const arquivo = await servico.exportarCsv({
+        busca: consulta.trim(),
+        funcaoId: filtroAtivo && filtroAtivo !== "sem-funcao" ? Number(filtroAtivo) : undefined,
+        semFuncao: filtroAtivo === "sem-funcao" ? true : undefined,
+      });
+      baixarCsvRecebido(arquivo, `usuarios-${hojeISO()}.csv`);
+      definirMensagem("Arquivo CSV gerado com os usuários filtrados.");
+    } catch (falha) {
+      definirErroExportacao(falha.message);
+    } finally {
+      definirExportando(false);
+    }
   };
   const colunas = [
     { key: "name", label: "Nome", render: (usuario) => <><span className="block font-semibold">{usuario.name}</span><span className="block text-xs text-muted">{usuario.email}</span></> },
@@ -94,12 +107,13 @@ export default function AssociadosAdmin() {
           <CampoSelecao label="" value="" placeholder="Departamentos indisponíveis" options={[]} disabled className="sm:w-60 [&>span:first-child]:hidden" />
         </div>
         <div className="flex gap-2">
-          <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length || recurso.carregando || !!recurso.erro}><Icone name="download" size={18} /> Exportar</Botao>
+          <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length || recurso.carregando || !!recurso.erro || exportando}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar"}</Botao>
           <Botao onClick={() => { definirMensagem(null); definirCadastrando(true); }} disabled={recurso.carregando || !!recurso.erro}><Icone name="plus" size={18} /> Novo usuário</Botao>
         </div>
       </div>
       <p className="text-sm text-muted">Vínculos com departamentos estarão disponíveis em uma próxima etapa.</p>
       {mensagem && <p role="status" className="rounded-lg bg-success-soft px-4 py-3 text-sm text-success">{mensagem}</p>}
+      {erroExportacao && <p role="alert" className="rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">{erroExportacao}</p>}
       {recurso.carregando ? <Cartao className="p-8"><p role="status" className="text-center text-muted">Carregando usuários...</p></Cartao> : recurso.erro ? (
         <Cartao className="space-y-4 p-6"><p role="alert" className="text-sm text-danger">{recurso.erro}</p><Botao variant="outline" onClick={recurso.recarregar}>Tentar novamente</Botao></Cartao>
       ) : (

@@ -15,6 +15,13 @@ function adaptarLancamento(lancamento) {
  fkFamilia: lancamento.fkFamilia,
  };
 }
+const parametrosCsv = (dados) => {
+ const query = new URLSearchParams();
+ Object.entries(dados).forEach(([chave, valor]) => {
+  if (valor !== undefined && valor !== null && valor !== "") query.set(chave, String(valor));
+ });
+ return query.toString();
+};
 export function criarServicoFinanceiro(requisitar) {
  const chamar = (caminho, opcoes = {}) => requisitar(`/financeiro${caminho}`, opcoes);
  return {
@@ -26,6 +33,7 @@ export function criarServicoFinanceiro(requisitar) {
  transactions: (resposta.lancamentos || []).map(adaptarLancamento),
  };
  },
+ exportarCsv: (dados) => chamar(`/dashboard/export.csv?${parametrosCsv(dados)}`, { download: true }),
  despesas: () => chamar("/despesas"),
  criarDespesa: (dados) => chamar("/despesas", { method: "POST", body: dados }),
  editarDespesa: (id, dados) => chamar(`/despesas/${id}`, { method: "PUT", body: dados }),
