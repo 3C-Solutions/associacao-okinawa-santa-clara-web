@@ -21,7 +21,7 @@ function formatarEndereco(endereco) {
   ].filter(Boolean).join(" · ");
 }
 
-const parametrosCsv = (dados) => {
+const parametrosExportacao = (dados) => {
   const query = new URLSearchParams();
   Object.entries(dados).forEach(([chave, valor]) => {
     if (valor !== undefined && valor !== null && valor !== "") query.set(chave, String(valor));
@@ -89,7 +89,7 @@ export function criarServicoUsuarios(requisitar) {
       if (!Array.isArray(dados)) throw contratoInvalido();
       return dados.map(normalizarUsuario);
     },
-    exportarCsv: (filtros) => requisitar(`/usuarios/export.csv?${parametrosCsv(filtros)}`, { download: true }),
+    exportarXlsx: (filtros) => requisitar(`/usuarios/export.xlsx?${parametrosExportacao(filtros)}`, { download: true }),
     buscar: async (id, signal) => {
       if (!idValido(id)) throw contratoInvalido();
       const usuario = normalizarUsuario(await requisitar(`/usuarios/${id}`, { signal }));

@@ -16,11 +16,11 @@ test('consulta famílias no endpoint do develop e encaminha cancelamento', async
   });
   assert.deepEqual(await api.familias({ signal: controle.signal }), familias);
 });
-test('solicita a exportação CSV ao backend com filtros e resposta de arquivo', async () => {
+test('solicita a exportação XLSX ao backend com filtros e resposta de arquivo', async () => {
   const chamadas = [];
   const api = criarServicoFinanceiro(async (path, options) => { chamadas.push([path, options]); });
-  await api.exportarCsv({ ano: 2026, mes: 11, dataInicio: '2026-11-01', tipo: 'SAIDA', status: 'Pago', busca: 'água e luz' });
-  assert.equal(chamadas[0][0], '/financeiro/dashboard/export.csv?ano=2026&mes=11&dataInicio=2026-11-01&tipo=SAIDA&status=Pago&busca=%C3%A1gua+e+luz');
+  await api.exportarXlsx({ ano: 2026, mes: 11, dataInicio: '2026-11-01', tipo: 'SAIDA', status: 'Pago', busca: 'água e luz' });
+  assert.equal(chamadas[0][0], '/financeiro/dashboard/export.xlsx?ano=2026&mes=11&dataInicio=2026-11-01&tipo=SAIDA&status=Pago&busca=%C3%A1gua+e+luz');
   assert.equal(chamadas[0][1].download, true);
 });
 test('aceita centavos e família opcional', () => {

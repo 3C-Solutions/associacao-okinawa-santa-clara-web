@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { usarArmazenamento } from "@/store";
-import { baixarCsvRecebido, formatarData, formatarMoeda, chaveMes, hojeISO } from "@/lib/data.js";
+import { formatarData, formatarMoeda, chaveMes, hojeISO } from "@/lib/data.js";
+import { baixarXlsxRecebido } from "@/lib/xlsx.js";
 import { somar } from "@/lib/finance.js";
 import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, SeloStatus, Abas, Cartao } from "@/components/ui";
 import Graficos from "./Charts.jsx";
@@ -97,7 +98,7 @@ export default function Financas() {
       const fimMes = `${ano}-${String(mes).padStart(2, "0")}-${String(new Date(ano, mes, 0).getDate()).padStart(2, "0")}`;
       const dataInicio = filtros.period === "Este mês" ? inicioMes : filtros.period === "Este ano" ? `${ano}-01-01` : undefined;
       const dataFim = filtros.period === "Este mês" ? fimMes : filtros.period === "Este ano" ? `${ano}-12-31` : undefined;
-      const arquivo = await api.exportarCsv({
+      const arquivo = await api.exportarXlsx({
         ano,
         mes,
         dataInicio,
@@ -106,8 +107,8 @@ export default function Financas() {
         status: filtros.status === "Todos" ? undefined : filtros.status,
         busca: filtros.q.trim(),
       });
-      baixarCsvRecebido(arquivo, `financeiro-${hoje}.csv`);
-      aviso("Arquivo CSV exportado");
+      baixarXlsxRecebido(arquivo, `financeiro-${hoje}.xlsx`);
+      aviso("Arquivo XLSX exportado");
     } catch (falha) {
       aviso(falha.message, "error");
     } finally {
@@ -149,7 +150,7 @@ export default function Financas() {
     {aba === "payments" ? <PagamentosDER api={api} onChange={atualizar} /> : <>
       <Graficos all={todos} year={String(ano)} />
       <section className="space-y-4" aria-label="Lançamentos financeiros">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status. A exportação inclui despesas e entradas avulsas.</p></div><Botao variant="outline" disabled={!possuiExportaveis || exportando || carregando || !!erro} onClick={exportar}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar CSV"}</Botao></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status. A exportação inclui despesas e entradas avulsas.</p></div><Botao variant="outline" disabled={!possuiExportaveis || exportando || carregando || !!erro} onClick={exportar}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar XLSX"}</Botao></div>
         <Cartao className="space-y-4 p-4 sm:p-5">
           <div className="grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
             <div><span className="mb-2 block text-sm font-semibold">Buscar lançamento</span><EntradaBusca value={filtros.q} onChange={definirFiltro("q")} placeholder="Descrição ou categoria" /></div>

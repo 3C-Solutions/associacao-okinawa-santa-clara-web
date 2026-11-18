@@ -1,4 +1,5 @@
 import axios from "axios";
+import { XLSX_MIME_TYPE } from "./xlsx.js";
 
 export class ErroApi extends Error {
   constructor(status, mensagem, codigo = null) {
@@ -36,7 +37,7 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
       const cabecalhos = new axios.AxiosHeaders(headers);
       if (token) cabecalhos.set("Authorization", `Bearer ${token}`);
       if (body !== undefined) cabecalhos.set("Content-Type", "application/json");
-      if (download) cabecalhos.set("Accept", "text/csv");
+      if (download) cabecalhos.set("Accept", XLSX_MIME_TYPE);
       const resposta = await cliente.request({
         ...opcoes, url: caminho, headers: cabecalhos, signal, responseType: download ? "blob" : "text",
         ...(body !== undefined ? { data: body } : {}),

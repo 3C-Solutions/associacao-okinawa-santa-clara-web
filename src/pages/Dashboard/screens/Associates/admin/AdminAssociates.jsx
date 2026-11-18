@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { usarRecursoApi } from "@/hooks/useApiResource.js";
 import { criarServicoUsuarios } from "@/services/usuarios.js";
-import { baixarCsvRecebido, hojeISO, mascararTelefone } from "@/lib/data.js";
+import { baixarXlsxRecebido } from "@/lib/xlsx.js";
+import { hojeISO, mascararTelefone } from "@/lib/data.js";
 import { Selo, Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, Cartao } from "@/components/ui";
 import DetalhesUsuario from "./UserDetails.jsx";
 import FormularioEdicaoUsuario from "./UserEditForm.jsx";
@@ -69,17 +70,17 @@ export default function AssociadosAdmin() {
     definirMensagem(`Usuário ${usuario.name} excluído (inativado).`);
   };
 
-  const exportarCsv = async () => {
+  const exportarXlsx = async () => {
     definirExportando(true);
     definirErroExportacao("");
     try {
-      const arquivo = await servico.exportarCsv({
+      const arquivo = await servico.exportarXlsx({
         busca: consulta.trim(),
         funcaoId: filtroAtivo && filtroAtivo !== "sem-funcao" ? Number(filtroAtivo) : undefined,
         semFuncao: filtroAtivo === "sem-funcao" ? true : undefined,
       });
-      baixarCsvRecebido(arquivo, `usuarios-${hojeISO()}.csv`);
-      definirMensagem("Arquivo CSV gerado com os usuários filtrados.");
+      baixarXlsxRecebido(arquivo, `usuarios-${hojeISO()}.xlsx`);
+      definirMensagem("Arquivo XLSX gerado com os usuários filtrados.");
     } catch (falha) {
       definirErroExportacao(falha.message);
     } finally {
@@ -107,7 +108,7 @@ export default function AssociadosAdmin() {
           <CampoSelecao label="" value="" placeholder="Departamentos indisponíveis" options={[]} disabled className="sm:w-60 [&>span:first-child]:hidden" />
         </div>
         <div className="flex gap-2">
-          <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length || recurso.carregando || !!recurso.erro || exportando}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar"}</Botao>
+          <Botao variant="outline" onClick={exportarXlsx} disabled={!linhas.length || recurso.carregando || !!recurso.erro || exportando}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar XLSX"}</Botao>
           <Botao onClick={() => { definirMensagem(null); definirCadastrando(true); }} disabled={recurso.carregando || !!recurso.erro}><Icone name="plus" size={18} /> Novo usuário</Botao>
         </div>
       </div>
