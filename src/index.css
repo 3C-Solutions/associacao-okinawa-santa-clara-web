@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=optional');
 @import 'tailwindcss';
 
 @theme {
@@ -10,7 +10,7 @@
   --color-accent: #f6e31d;
   --color-canvas: #f7f8fc;
   --color-ink: #111827;
-  --color-muted: #6b7280;
+  --color-muted: #4b5563;
   --color-divider: #e2e4f3;
   --color-field: #9ca3af;
   --color-success: #166534;

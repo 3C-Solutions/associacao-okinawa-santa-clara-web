@@ -1,0 +1,9 @@
+# Associação Okinawa de Santa Clara
+
+Associação cultural que preserva e divulga as tradições de Okinawa em Santa Clara, São Paulo.
+
+- Departamentos: atividades de dança, música, esportes e idioma.
+- Eventos: encontros culturais e comunitários.
+- Contato: okinawa.santaclara@gmail.com
+
+- [Site oficial da Associação](http://localhost:5173/): departamentos, eventos e formas de associação.
