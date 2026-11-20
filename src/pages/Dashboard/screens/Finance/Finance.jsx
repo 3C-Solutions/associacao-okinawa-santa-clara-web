@@ -108,7 +108,7 @@ export default function Financas() {
         busca: filtros.q.trim(),
       });
       baixarXlsxRecebido(arquivo, `financeiro-${hoje}.xlsx`);
-      aviso("Arquivo XLSX exportado");
+      aviso("Arquivo Excel exportado");
     } catch (falha) {
       aviso(falha.message, "error");
     } finally {
@@ -150,7 +150,7 @@ export default function Financas() {
     {aba === "payments" ? <PagamentosDER api={api} onChange={atualizar} /> : <>
       <Graficos all={todos} year={String(ano)} />
       <section className="space-y-4" aria-label="Lançamentos financeiros">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status. A exportação inclui despesas e entradas avulsas.</p></div><Botao variant="outline" disabled={!possuiExportaveis || exportando || carregando || !!erro} onClick={exportar}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar XLSX"}</Botao></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status. A exportação inclui despesas e entradas avulsas.</p></div><Botao variant="outline" disabled={!possuiExportaveis || exportando || carregando || !!erro} onClick={exportar}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar Excel"}</Botao></div>
         <Cartao className="space-y-4 p-4 sm:p-5">
           <div className="grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
             <div><span className="mb-2 block text-sm font-semibold">Buscar lançamento</span><EntradaBusca value={filtros.q} onChange={definirFiltro("q")} placeholder="Descrição ou categoria" /></div>

@@ -18,7 +18,7 @@ export async function baixarXlsx(nomeArquivo, nomePlanilha, cabecalho, linhas) {
 }
 
 export function baixarXlsxRecebido(resposta, nomeArquivo) {
-  if (!(resposta?.data instanceof Blob)) throw new Error("O serviço não retornou um arquivo XLSX válido.");
+  if (!(resposta?.data instanceof Blob)) throw new Error("O serviço não retornou um arquivo Excel válido.");
   const enderecoUrl = URL.createObjectURL(resposta.data);
   const elementoA = document.createElement("a");
   elementoA.href = enderecoUrl;

@@ -80,7 +80,7 @@ export default function AssociadosAdmin() {
         semFuncao: filtroAtivo === "sem-funcao" ? true : undefined,
       });
       baixarXlsxRecebido(arquivo, `usuarios-${hojeISO()}.xlsx`);
-      definirMensagem("Arquivo XLSX gerado com os usuários filtrados.");
+      definirMensagem("Arquivo Excel gerado com os usuários filtrados.");
     } catch (falha) {
       definirErroExportacao(falha.message);
     } finally {
@@ -108,7 +108,7 @@ export default function AssociadosAdmin() {
           <CampoSelecao label="" value="" placeholder="Departamentos indisponíveis" options={[]} disabled className="sm:w-60 [&>span:first-child]:hidden" />
         </div>
         <div className="flex gap-2">
-          <Botao variant="outline" onClick={exportarXlsx} disabled={!linhas.length || recurso.carregando || !!recurso.erro || exportando}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar XLSX"}</Botao>
+          <Botao variant="outline" onClick={exportarXlsx} disabled={!linhas.length || recurso.carregando || !!recurso.erro || exportando}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar Excel"}</Botao>
           <Botao onClick={() => { definirMensagem(null); definirCadastrando(true); }} disabled={recurso.carregando || !!recurso.erro}><Icone name="plus" size={18} /> Novo usuário</Botao>
         </div>
       </div>

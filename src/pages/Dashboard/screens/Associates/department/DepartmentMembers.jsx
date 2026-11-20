@@ -70,9 +70,9 @@ export default function MembrosDepartamento({ account: conta }) {
         ["Nome", "Vínculo", "Responsável", "Telefone"],
         linhas.map((mes) => [mes.name, mes.relation, mes.associateName, telefoneDe(mes.associateId)]),
       );
-      aviso("Arquivo XLSX gerado");
+      aviso("Arquivo Excel gerado");
     } catch (falha) {
-      aviso(falha.message || "Não foi possível gerar o arquivo XLSX.", "error");
+      aviso(falha.message || "Não foi possível gerar o arquivo Excel.", "error");
     } finally {
       definirExportando(false);
     }
@@ -101,7 +101,7 @@ export default function MembrosDepartamento({ account: conta }) {
   return (
     <div className="space-y-6">
       <CabecalhoPagina left={<EntradaBusca value={consulta} onChange={definirConsulta} placeholder="Buscar por nome" className="max-w-md" />}>
-        <Botao variant="outline" onClick={exportarXlsx} disabled={!linhas.length || exportando}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar XLSX"}</Botao>
+        <Botao variant="outline" onClick={exportarXlsx} disabled={!linhas.length || exportando}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar Excel"}</Botao>
         <Botao onClick={() => definirAdicionando(true)}><Icone name="plus" size={18} /> Adicionar associado</Botao>
       </CabecalhoPagina>
       <div className="flex flex-wrap items-center justify-between gap-3">
