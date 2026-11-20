@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { baixarCsv, formatarData } from "@/lib/data.js";
+import { baixarXlsx } from "@/lib/xlsx.js";
+import { formatarData, hojeISO } from "@/lib/data.js";
 import { capacidadeDe, matricularPessoa, estaCompleto, membrosDe, abrirSolicitacao, solicitacoesDe, desmatricularPessoa, formatarDataCadastro } from "@/lib/people.js";
 import { usarArmazenamento, usarUsuario } from "@/store";
 import { Botao, Cartao, TabelaDados, EstadoVazio, Icone, BotaoIcone, CabecalhoPagina, EntradaBusca, SeloStatus, Abas } from "@/components/ui";
@@ -13,6 +14,7 @@ export default function MembrosDepartamento({ account: conta }) {
   const [consulta, definirConsulta] = useState("");
   const [aba, definirAba] = useState("enrolled");
   const [adicionando, definirAdicionando] = useState(false);
+  const [exportando, definirExportando] = useState(false);
   const departamento = usuario.department;
   if (!departamento) return <Cartao><EstadoVazio icon="groups" title="Departamento não encontrado" /></Cartao>;
 
@@ -59,7 +61,22 @@ export default function MembrosDepartamento({ account: conta }) {
     aviso("Inscrito removido");
   } });
 
-  const exportarCsv = () => { baixarCsv(`inscritos-${departamento.name}.csv`, ["Nome", "Vínculo", "Responsável", "Telefone"], linhas.map((mes) => [mes.name, mes.relation, mes.associateName, telefoneDe(mes.associateId)])); aviso("Arquivo CSV gerado"); };
+  const exportarXlsx = async () => {
+    definirExportando(true);
+    try {
+      await baixarXlsx(
+        `inscritos-${departamento.name}-${hojeISO()}.xlsx`,
+        "Inscritos",
+        ["Nome", "Vínculo", "Responsável", "Telefone"],
+        linhas.map((mes) => [mes.name, mes.relation, mes.associateName, telefoneDe(mes.associateId)]),
+      );
+      aviso("Arquivo Excel gerado");
+    } catch (falha) {
+      aviso(falha.message || "Não foi possível gerar o arquivo Excel.", "error");
+    } finally {
+      definirExportando(false);
+    }
+  };
 
   const colunasMembros = [
     { key: "name", label: "Inscrito", render: (mes) => <span className="font-semibold">{mes.name}</span> },
@@ -84,7 +101,7 @@ export default function MembrosDepartamento({ account: conta }) {
   return (
     <div className="space-y-6">
       <CabecalhoPagina left={<EntradaBusca value={consulta} onChange={definirConsulta} placeholder="Buscar por nome" className="max-w-md" />}>
-        <Botao variant="outline" onClick={exportarCsv} disabled={!linhas.length}><Icone name="download" size={18} /> Exportar</Botao>
+        <Botao variant="outline" onClick={exportarXlsx} disabled={!linhas.length || exportando}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar Excel"}</Botao>
         <Botao onClick={() => definirAdicionando(true)}><Icone name="plus" size={18} /> Adicionar associado</Botao>
       </CabecalhoPagina>
       <div className="flex flex-wrap items-center justify-between gap-3">

@@ -157,18 +157,6 @@ export const mascararCep = (valor) => {
 };
 export const ehEmail = (valorAuxiliar) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valorAuxiliar || "");
 
-export function baixarCsv(nomeArquivo, cabecalho, linhas) {
-  const escaparHtml = (valorAuxiliar) => `"${String(valorAuxiliar ?? "").replace(/"/g, '""')}"`;
-  const arquivoCsv = [cabecalho, ...linhas].map((resultado) => resultado.map(escaparHtml).join(";")).join("\n");
-  const arquivoBinario = new Blob(["﻿" + arquivoCsv], { type: "text/csv;charset=utf-8" });
-  const enderecoUrl = URL.createObjectURL(arquivoBinario);
-  const elementoA = document.createElement("a");
-  elementoA.href = enderecoUrl;
-  elementoA.download = nomeArquivo;
-  elementoA.click();
-  URL.revokeObjectURL(enderecoUrl);
-}
-
 // ---------- dados iniciais (datas relativas a hoje) ----------
 export function criarDadosIniciais() {
   const hoje = hojeISO();

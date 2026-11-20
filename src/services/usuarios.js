@@ -21,6 +21,14 @@ function formatarEndereco(endereco) {
   ].filter(Boolean).join(" · ");
 }
 
+const parametrosExportacao = (dados) => {
+  const query = new URLSearchParams();
+  Object.entries(dados).forEach(([chave, valor]) => {
+    if (valor !== undefined && valor !== null && valor !== "") query.set(chave, String(valor));
+  });
+  return query.toString();
+};
+
 export function normalizarUsuario(dados) {
   if (!idValido(dados?.id) || typeof dados.nome !== "string" || typeof dados.email !== "string" || typeof dados.ativo !== "boolean"
     || (dados.telefone != null && typeof dados.telefone !== "string")) throw contratoInvalido();
@@ -81,6 +89,7 @@ export function criarServicoUsuarios(requisitar) {
       if (!Array.isArray(dados)) throw contratoInvalido();
       return dados.map(normalizarUsuario);
     },
+    exportarXlsx: (filtros) => requisitar(`/usuarios/export.xlsx?${parametrosExportacao(filtros)}`, { download: true }),
     buscar: async (id, signal) => {
       if (!idValido(id)) throw contratoInvalido();
       const usuario = normalizarUsuario(await requisitar(`/usuarios/${id}`, { signal }));

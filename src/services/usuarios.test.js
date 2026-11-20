@@ -36,3 +36,15 @@ test("exclui via DELETE /usuarios/{id} e rejeita id inválido sem chamar a API",
   await assert.rejects(() => servico.excluir(0));
   assert.equal(chamadas.length, 1);
 });
+
+test("exporta usuários como XLSX pelo backend aplicando busca e função", async () => {
+  const chamadas = [];
+  const servico = criarServicoUsuarios(async (caminho, opcoes) => {
+    chamadas.push([caminho, opcoes]);
+    return { data: new Blob(["xlsx"]) };
+  });
+  const arquivo = await servico.exportarXlsx({ busca: "Ana Higa", funcaoId: 3 });
+  assert.equal(chamadas[0][0], "/usuarios/export.xlsx?busca=Ana+Higa&funcaoId=3");
+  assert.equal(chamadas[0][1].download, true);
+  assert.equal(arquivo.data.size, 4);
+});
