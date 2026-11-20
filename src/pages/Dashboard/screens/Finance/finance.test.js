@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validarDespesa } from './financeValidation.js';
 import { criarServicoFinanceiro } from '../../../../services/financeiroApi.js';
+import { atualizarReembolsos, lerReembolsos, reembolsosVisiveis, usuarioEhFinanceiro } from '../../../../lib/refunds.js';
+import { validarReembolso } from './requests/refundHelpers.js';
 
 const despesa = { descricao: 'Materiais', categoria: 'Outros', valor: '12.50', dtDepesa: '2026-11-03', status: 'Pendente', fkFamilia: '' };
 test('consulta famílias no endpoint do develop e encaminha cancelamento', async () => {
@@ -14,9 +16,44 @@ test('consulta famílias no endpoint do develop e encaminha cancelamento', async
   });
   assert.deepEqual(await api.familias({ signal: controle.signal }), familias);
 });
+test('solicita a exportação XLSX ao backend com filtros e resposta de arquivo', async () => {
+  const chamadas = [];
+  const api = criarServicoFinanceiro(async (path, options) => { chamadas.push([path, options]); });
+  await api.exportarXlsx({ ano: 2026, mes: 11, dataInicio: '2026-11-01', tipo: 'SAIDA', status: 'Pago', busca: 'água e luz' });
+  assert.equal(chamadas[0][0], '/financeiro/dashboard/export.xlsx?ano=2026&mes=11&dataInicio=2026-11-01&tipo=SAIDA&status=Pago&busca=%C3%A1gua+e+luz');
+  assert.equal(chamadas[0][1].download, true);
+});
 test('aceita centavos e família opcional', () => {
   assert.deepEqual(validarDespesa(despesa), {});
   assert.deepEqual(validarDespesa({ ...despesa, valor: '0,01', fkFamilia: '5' }), {});
+});
+test('solicitação de reembolso valida motivo, valor positivo e comprovante', () => {
+  const valida = { reason: 'Compra de materiais', amount: '12,50', receipt: { name: 'nota.pdf' } };
+  assert.deepEqual(validarReembolso(valida), { erros: {}, valor: 12.5 });
+  assert.ok(validarReembolso({ ...valida, amount: '0' }).erros.amount);
+  assert.ok(validarReembolso({ ...valida, amount: 'invalido' }).erros.amount);
+  assert.ok(validarReembolso({ ...valida, amount: '12.501' }).erros.amount);
+  assert.ok(validarReembolso({ ...valida, reason: 'abc' }).erros.reason);
+  assert.ok(validarReembolso({ ...valida, receipt: null }).erros.receipt);
+});
+test('reembolsos locais ficam acessíveis ao Financeiro e isolados para o solicitante', () => {
+  const itens = [{ id: 'r1', ownerId: 7 }, { id: 'r2', ownerId: 8 }];
+  assert.deepEqual(reembolsosVisiveis(itens, 7, false), [itens[0]]);
+  assert.deepEqual(reembolsosVisiveis(itens, 8, true), itens);
+  assert.equal(usuarioEhFinanceiro('Financeiro'), true);
+  assert.equal(usuarioEhFinanceiro('Diretoria'), false);
+});
+test('atualiza solicitações locais e informa dados salvos inválidos', () => {
+  const valores = new Map();
+  const storage = {
+    getItem: (chave) => valores.get(chave) ?? null,
+    setItem: (chave, valor) => valores.set(chave, valor),
+  };
+  assert.deepEqual(lerReembolsos(storage), []);
+  atualizarReembolsos((itens) => [...itens, { id: 'r1', status: 'Pendente' }], storage);
+  assert.deepEqual(lerReembolsos(storage), [{ id: 'r1', status: 'Pendente' }]);
+  valores.set('okinawa-sc-reembolsos-v1', '{');
+  assert.throws(() => lerReembolsos(storage), /dados salvos estão inválidos/);
 });
 test('rejeita valores vazios, negativos, não finitos e casas extras', () => {
   for (const valor of ['', 'abc', 'NaN', 'Infinity', '-1', '0', '1.001', '1000000000000']) assert.ok(validarDespesa({ ...despesa, valor }).valor, valor);

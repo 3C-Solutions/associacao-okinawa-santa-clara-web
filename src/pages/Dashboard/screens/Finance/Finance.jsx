@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { usarArmazenamento } from "@/store";
-import { baixarCsv, formatarData, formatarMoeda, chaveMes, hojeISO } from "@/lib/data.js";
+import { formatarData, formatarMoeda, chaveMes, hojeISO } from "@/lib/data.js";
+import { baixarXlsxRecebido } from "@/lib/xlsx.js";
 import { somar } from "@/lib/finance.js";
 import { Botao, TabelaDados, EstadoVazio, Icone, BotaoIcone, EntradaBusca, CampoSelecao, SeloStatus, Abas, Cartao } from "@/components/ui";
 import Graficos from "./Charts.jsx";
 import DespesasForm from "./DespesasForm.jsx";
 import PagamentosDER from "./PagamentosDER.jsx";
 import { criarServicoFinanceiro } from "@/services/financeiroApi.js";
+import PainelReembolsos from "./requests/RefundsPanel.jsx";
 
 function Resumo({ label, value, detail, principal, tone = "text-muted" }) {
   return <Cartao className={`min-w-0 p-5 ${principal ? "border-brand/20 bg-brand-soft/40" : ""}`}>
@@ -30,6 +32,8 @@ export default function Financas() {
   const [erro, setErro] = useState("");
   const [versao, setVersao] = useState(0);
   const [aba, setAba] = useState("ledger");
+  const [exportando, setExportando] = useState(false);
+  const opcoesAbas = [{ value: "ledger", label: "Lançamentos" }, { value: "payments", label: "Verificar pagamentos" }, { value: "refunds", label: "Reembolsos" }];
   const [formulario, setFormulario] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const operacaoEmCurso = useRef(false);
@@ -56,6 +60,7 @@ export default function Financas() {
       .filter((item) => !consulta || `${item.description} ${item.category}`.toLocaleLowerCase("pt-BR").includes(consulta))
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [todos, filtros, ano, hoje]);
+  const possuiExportaveis = filtrado.some((item) => item.id.startsWith("ENT-") || item.id.startsWith("DES-"));
   const executar = async (operacao, mensagem, propagar = false) => {
     if (operacaoEmCurso.current) return false;
     operacaoEmCurso.current = true;
@@ -86,10 +91,29 @@ export default function Financas() {
     const salvo = await executar(() => formulario.id ? editar(Number(formulario.id.slice(4)), dados) : criar(dados), entrada ? "Entrada salva com sucesso" : "Despesa salva com sucesso", true);
     if (salvo) setFormulario(null);
   };
-  const exportar = () => {
-    baixarCsv(`financeiro-${hoje}.csv`, ["Data", "Descrição", "Categoria", "Tipo", "Valor", "Status"],
-      filtrado.map((item) => [formatarData(item.date), item.description, item.category, item.type === "in" ? "Entrada" : "Saída", item.amount.toFixed(2).replace(".", ","), statusLancamento(item)]));
-    aviso("Arquivo CSV exportado");
+  const exportar = async () => {
+    setExportando(true);
+    try {
+      const inicioMes = `${ano}-${String(mes).padStart(2, "0")}-01`;
+      const fimMes = `${ano}-${String(mes).padStart(2, "0")}-${String(new Date(ano, mes, 0).getDate()).padStart(2, "0")}`;
+      const dataInicio = filtros.period === "Este mês" ? inicioMes : filtros.period === "Este ano" ? `${ano}-01-01` : undefined;
+      const dataFim = filtros.period === "Este mês" ? fimMes : filtros.period === "Este ano" ? `${ano}-12-31` : undefined;
+      const arquivo = await api.exportarXlsx({
+        ano,
+        mes,
+        dataInicio,
+        dataFim,
+        tipo: filtros.type === "Todos" ? undefined : filtros.type === "Entradas" ? "ENTRADA" : "SAIDA",
+        status: filtros.status === "Todos" ? undefined : filtros.status,
+        busca: filtros.q.trim(),
+      });
+      baixarXlsxRecebido(arquivo, `financeiro-${hoje}.xlsx`);
+      aviso("Arquivo Excel exportado");
+    } catch (falha) {
+      aviso(falha.message, "error");
+    } finally {
+      setExportando(false);
+    }
   };
   const definirFiltro = (campo) => (valor) => setFiltros((anterior) => ({ ...anterior, [campo]: valor }));
   const colunas = [
@@ -100,8 +124,9 @@ export default function Financas() {
     { key: "status", label: "Status", render: (item) => item.id.startsWith("ENT-") && item.status === "Pago" ? <span className="text-sm font-semibold text-success">Recebido</span> : <SeloStatus status={item.status} /> },
   ];
   if (!permitido) return <EstadoVazio icon="wallet" title="Sem acesso ao Financeiro">Seu perfil não tem permissão para consultar esta tela.</EstadoVazio>;
-  if (carregando && !dashboard) return <Cartao className="p-8"><p role="status" className="text-sm text-muted">Carregando resumo e lançamentos financeiros...</p></Cartao>;
-  if (!dashboard) return <Cartao className="space-y-4 p-6"><p role="alert" className="text-danger">{erro || "Não foi possível carregar o financeiro."}</p><Botao onClick={atualizar}>Tentar novamente</Botao></Cartao>;
+  if (aba === "refunds") return <div className="space-y-6"><Abas value={aba} onChange={setAba} options={opcoesAbas} /><PainelReembolsos /></div>;
+  if (carregando && !dashboard) return <div className="space-y-6"><Abas value={aba} onChange={setAba} options={opcoesAbas} /><Cartao className="p-8"><p role="status" className="text-sm text-muted">Carregando resumo e lançamentos financeiros...</p></Cartao></div>;
+  if (!dashboard) return <div className="space-y-6"><Abas value={aba} onChange={setAba} options={opcoesAbas} /><Cartao className="space-y-4 p-6"><p role="alert" className="text-danger">{erro || "Não foi possível carregar o financeiro."}</p><Botao onClick={atualizar}>Tentar novamente</Botao></Cartao></div>;
   const resumo = dashboard.resumo;
   const variacao = resumo.variacaoMensal;
   const confirmados = filtrado.filter((item) => item.status === "Pago");
@@ -121,11 +146,11 @@ export default function Financas() {
       <Resumo label="Entradas no ano" value={resumo.entradasAnuais} detail="Entradas recebidas e pagamentos confirmados" tone="text-success" />
       <Resumo label="Saídas no ano" value={resumo.saidasAnuais} detail="Despesas com status pago" tone="text-danger" />
     </div>
-    <Abas value={aba} onChange={setAba} options={[{ value: "ledger", label: "Lançamentos" }, { value: "payments", label: "Verificar pagamentos" }]} />
+    <Abas value={aba} onChange={setAba} options={opcoesAbas} />
     {aba === "payments" ? <PagamentosDER api={api} onChange={atualizar} /> : <>
       <Graficos all={todos} year={String(ano)} />
       <section className="space-y-4" aria-label="Lançamentos financeiros">
-        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status.</p></div><Botao variant="outline" disabled={!filtrado.length} onClick={exportar}><Icone name="download" size={18} /> Exportar CSV</Botao></div>
+        <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-bold">Lançamentos</h2><p className="mt-1 text-sm text-muted">Consulte entradas, despesas e seus status. A exportação inclui despesas e entradas avulsas.</p></div><Botao variant="outline" disabled={!possuiExportaveis || exportando || carregando || !!erro} onClick={exportar}><Icone name="download" size={18} /> {exportando ? "Exportando..." : "Exportar Excel"}</Botao></div>
         <Cartao className="space-y-4 p-4 sm:p-5">
           <div className="grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
             <div><span className="mb-2 block text-sm font-semibold">Buscar lançamento</span><EntradaBusca value={filtros.q} onChange={definirFiltro("q")} placeholder="Descrição ou categoria" /></div>

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { XLSX_MIME_TYPE } from "./xlsx.js";
 
 export class ErroApi extends Error {
   constructor(status, mensagem, codigo = null) {
@@ -30,15 +31,15 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
     ...(adapter ? { adapter } : {}),
   });
 
-  return async function requisitar(caminho, { token, body, signal, headers, statusEsperado, ...opcoes } = {}) {
+  return async function requisitar(caminho, { token, body, signal, headers, statusEsperado, download = false, ...opcoes } = {}) {
     if (!caminho.startsWith("/") || caminho.startsWith("//")) throw new Error("Caminho de API inválido");
     try {
       const cabecalhos = new axios.AxiosHeaders(headers);
       if (token) cabecalhos.set("Authorization", `Bearer ${token}`);
-      const ehFormData = typeof FormData !== "undefined" && body instanceof FormData;
-if (body !== undefined && !ehFormData) cabecalhos.set("Content-Type", "application/json");
+      if (body !== undefined) cabecalhos.set("Content-Type", "application/json");
+      if (download) cabecalhos.set("Accept", XLSX_MIME_TYPE);
       const resposta = await cliente.request({
-        ...opcoes, url: caminho, headers: cabecalhos, signal,
+        ...opcoes, url: caminho, headers: cabecalhos, signal, responseType: download ? "blob" : "text",
         ...(body !== undefined ? { data: body } : {}),
       });
       if (resposta.status < 200 || resposta.status >= 300) {
@@ -52,6 +53,12 @@ if (body !== undefined && !ehFormData) cabecalhos.set("Content-Type", "applicati
       }
       if (statusEsperado !== undefined && resposta.status !== statusEsperado) {
         throw new ErroApi(502, "O serviço retornou uma resposta inesperada. Tente novamente.");
+      }
+      if (download) {
+        return {
+          data: resposta.data,
+          contentDisposition: resposta.headers?.["content-disposition"] || "",
+        };
       }
       const texto = resposta.data;
       if (!texto) return null;

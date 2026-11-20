@@ -8,7 +8,6 @@ import Familias from "./screens/Families/Families.jsx";
 import Financas from "./screens/Finance/Finance.jsx";
 import Configuracoes from "./screens/Settings/Settings.jsx";
 
-// Cada tela deve declarar uma permissão ou ser explicitamente comum à sessão autenticada.
 export const NAVEGACAO_PAINEL = [
  { id: "home", label: "Início", icon: "home", comum: true, componente: InicioAutenticado },
  { id: "finance", label: "Financeiro", icon: "wallet", permissao: "TELA_FINANCEIRO", componente: Financas },
