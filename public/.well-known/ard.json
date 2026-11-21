@@ -1,0 +1,16 @@
+{
+  "entries": [
+    {
+      "identifier": "urn:air:localhost:site:associacao-okinawa-santa-clara",
+      "displayName": "Guia da Associação Okinawa de Santa Clara",
+      "type": "application/agent-skills+md",
+      "url": "http://localhost:5173/llms.txt",
+      "description": "Resumo em Markdown do site da Associação Okinawa de Santa Clara, com departamentos, eventos e formas de associação.",
+      "representativeQueries": [
+        "departamentos da Associação Okinawa de Santa Clara",
+        "como me associar à Associação Okinawa de Santa Clara",
+        "eventos culturais de Okinawa em Santa Clara"
+      ]
+    }
+  ]
+}

@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatarData, ehEmail, mascararTelefone, fotos } from "@/lib/data.js";
 import { usarArmazenamento } from "@/store";
 import { Selo, Botao, Campo, Icone, BotaoIcone, Modal, TituloSecao, CampoSelecao, CampoAreaTexto } from "@/components/ui";
+import { usarRecursoApi } from "@/hooks/useApiResource.js";
+import { servicoDepartamentosPublicos } from "@/services/departamentosPublicos.js";
+
+
 
 const NAVEGACAO = [
   ["Início", "inicio"],
@@ -23,11 +27,29 @@ export default function SitePublico({ onLogin: aoEntrar }) {
     try { return localStorage.getItem("okinawa-cookies") === "ok"; } catch { return false; }
   });
 
-  const departamentos = useMemo(() => dadosAplicacao.departments.filter((dataValor) => dataValor.active), [dadosAplicacao.departments]);
-  const total = departamentos.length;
-  const quantidadeVisivel = Math.min(3, total);
-  const visivel = Array.from({ length: quantidadeVisivel }, (ignorado, indice) => departamentos[(inicioCarrossel + indice) % total]);
-  const membros = dadosAplicacao.associates.reduce((somar, elementoA) => somar + 1 + elementoA.dependents.length, 0);
+  // Busca os departamentos cadastrados no back-end
+const recursoDepartamentos = usarRecursoApi(
+  servicoDepartamentosPublicos.listar
+);
+
+// Dados retornados pela API
+const departamentos = recursoDepartamentos.dados || [];
+
+const total = departamentos.length;
+
+// Quantidade de departamentos exibidos por vez
+const quantidadeVisivel = Math.min(3, total);
+
+// Departamentos que serão apresentados no carrossel
+const visivel = Array.from(
+  { length: quantidadeVisivel },
+  (_, indice) => departamentos[(inicioCarrossel + indice) % total]
+);
+
+const membros = dadosAplicacao.associates.reduce(
+  (somar, elementoA) => somar + 1 + elementoA.dependents.length,
+  0
+);
 
   useEffect(() => {
     if (pausado || total <= 3) return undefined;
@@ -49,19 +71,33 @@ export default function SitePublico({ onLogin: aoEntrar }) {
   const [formulario, definirFormulario] = useState(formularioVazio);
   const [erros, definirErros] = useState({});
   const definir = (chave) => (valor) => { definirFormulario((elementoF) => ({ ...elementoF, [chave]: chave === "phone" ? mascararTelefone(valor) : valor })); definirErros((evento) => ({ ...evento, [chave]: undefined })); };
-  const enviarFormulario = (evento) => {
+ const enviarFormulario = (evento) => {
     evento.preventDefault();
-    const proximo = {};
-    if (formulario.name.trim().length < 3) proximo.name = "Informe seu nome completo.";
-    if (!ehEmail(formulario.email)) proximo.email = "Informe um e-mail válido.";
-    if (formulario.phone.replace(/\D/g, "").length < 10) proximo.phone = "Informe um telefone com DDD.";
-    definirErros(proximo);
-    if (Object.keys(proximo).length) return;
-    const departamento = dadosAplicacao.departments.find((dataValor) => dataValor.id === formulario.departmentId);
-    notificar("admin", "Nova solicitação de associação", `${formulario.name} (${formulario.phone})${departamento ? ` tem interesse em ${departamento.name}` : " quer se associar"}.`, "users");
+
+    if (!formulario.name || !formulario.email || !formulario.phone) {
+        aviso("Preencha todos os campos obrigatórios.");
+        return;
+    }
+
+    const departamentoSelecionado = departamentos.find(
+        (dataValor) =>
+            String(dataValor.id) === String(formulario.departmentId)
+    );
+
+    notificar(
+        "admin",
+        "Nova solicitação de associação",
+        `${formulario.name} (${formulario.phone})${
+            departamentoSelecionado
+                ? ` tem interesse em ${departamentoSelecionado.name}`
+                : " quer se associar"
+        }.`,
+        "users"
+    );
+
     aviso("Solicitação enviada! Entraremos em contato.");
     definirFormulario(formularioVazio);
-  };
+};
   const associarDepartamento = (departamento) => {
     definirFormulario((elementoF) => ({ ...elementoF, departmentId: departamento.id }));
     definirDepartamento(null);
@@ -139,22 +175,65 @@ export default function SitePublico({ onLogin: aoEntrar }) {
                 )}
               </div>
             </div>
-            <div key={inicioCarrossel} className="carousel-slide mt-10 grid gap-5 md:grid-cols-3">
-              {visivel.map((item) => (
-                <button key={item.id} type="button" onClick={() => definirDepartamento(item)} className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-brand">
-                  <div className="overflow-hidden"><img src={item.image} alt="" className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-105" /></div>
-                  <div className="flex items-center justify-between p-6">
-                    <div><h3 className="text-xl font-bold text-brand">{item.name}</h3><p className="mt-1 text-sm text-muted">{item.day}, {item.time}</p></div>
-                    <span className="grid size-10 place-items-center rounded-full bg-brand-soft text-brand"><Icone name="arrow" /></span>
+                        {recursoDepartamentos.carregando ? (
+              <div className="mt-10 grid gap-5 md:grid-cols-3" aria-hidden="true">
+                {[0, 1, 2].map((indice) => (
+                  <div key={indice} className="overflow-hidden rounded-2xl bg-white shadow-sm">
+                    <div className="aspect-[4/3] w-full bg-brand-soft" />
+                    <div className="flex items-center justify-between p-6">
+                      <div>
+                        <div className="h-7 w-32 rounded bg-brand-soft" />
+                        <div className="mt-1 h-4 w-24 rounded bg-brand-soft" />
+                      </div>
+                      <div className="size-10 rounded-full bg-brand-soft" />
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : recursoDepartamentos.erro ? (
+              <div className="mt-10 text-center">
+                <p role="alert" className="text-muted">{recursoDepartamentos.erro}</p>
+                <Botao variant="outline" className="mt-4" onClick={recursoDepartamentos.recarregar}>Tentar novamente</Botao>
+              </div>
+            ) : total === 0 ? (
+              <p className="mt-10 text-center text-muted">Nenhum departamento disponível no momento.</p>
+            ) : (
+              <div key={inicioCarrossel} className="carousel-slide mt-10 grid gap-5 md:grid-cols-3">
+                {visivel.map((item) => (
+                  <button key={item.id} type="button" onClick={() => definirDepartamento(item)} className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-brand">
+                    <div className="overflow-hidden">
+                      {item.image
+                        ? <img src={item.image} alt="" className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-105" />
+                        : <div className="aspect-[4/3] w-full bg-brand-soft" />}
+                    </div>
+                    <div className="flex items-center justify-between p-6">
+<div>
+  <h3 className="text-xl font-bold text-brand">
+    {item.name}
+  </h3>
+
+  <p className="mt-1 text-sm text-muted">
+    {item.day}, {item.time}
+  </p>
+
+  {item.school && (
+    <p className="mt-1 text-xs font-medium text-muted">
+      {item.school}
+    </p>
+  )}
+</div>                      <span className="grid size-10 place-items-center rounded-full bg-brand-soft text-brand"><Icone name="arrow" /></span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mt-6 flex min-h-8 items-center justify-center gap-2">
+              {total > 3 && departamentos.map((item, indice) => (
+                <button key={item.id} type="button" aria-label={`Exibir grupo iniciado por ${item.name}`} onClick={() => definirInicioCarrossel(indice)} className="group grid size-6 place-items-center rounded-full">
+                  <span className={`block h-2 rounded-full transition-all ${indice === inicioCarrossel ? "w-5 bg-brand" : "w-2 bg-brand/25 group-hover:bg-brand/50"}`} />
                 </button>
               ))}
             </div>
-            {total > 3 && (
-              <div className="mt-6 flex items-center justify-center gap-2">
-                {departamentos.map((item, indice) => <button key={item.id} type="button" aria-label={`Exibir grupo iniciado por ${item.name}`} onClick={() => definirInicioCarrossel(indice)} className={`h-2 rounded-full transition-all ${indice === inicioCarrossel ? "w-7 bg-brand" : "w-2 bg-brand/25 hover:bg-brand/50"}`} />)}
-              </div>
-            )}
           </div>
         </section>
 
@@ -171,7 +250,7 @@ export default function SitePublico({ onLogin: aoEntrar }) {
                 <Campo label="E-mail" type="email" value={formulario.email} onChange={definir("email")} error={erros.email} placeholder="email@email.com" required />
                 <Campo label="Telefone" type="tel" value={formulario.phone} onChange={definir("phone")} error={erros.phone} placeholder="(11) 99999-9999" required />
               </div>
-              <CampoSelecao label="Departamento de interesse" value={formulario.departmentId} onChange={definir("departmentId")} placeholder="À definir" options={departamentos.map((dataValor) => ({ value: dataValor.id, label: dataValor.name }))} />
+              <CampoSelecao label="Departamento de interesse" value={formulario.departmentId} onChange={definir("departmentId")} placeholder="À definir" options={departamentos.map((dataValor) => ({ value: String(dataValor.id), label: dataValor.name }))} />
               <CampoAreaTexto label="Mensagem (opcional)" rows={3} value={formulario.message} onChange={definir("message")} />
               <Botao type="submit" className="w-full">Enviar mensagem <Icone name="arrow" /></Botao>
             </form>
@@ -184,7 +263,7 @@ export default function SitePublico({ onLogin: aoEntrar }) {
             <div className="mt-7 flex gap-3 text-muted"><span className="text-brand"><Icone name="location" /></span><p>R. Miranda Jordão, 233<br />Chácara Mafalda, São Paulo - SP<br />03372-010</p></div>
             <Botao variant="secondary" className="mt-7" onClick={() => window.open(URL_MAPAS, "_blank", "noopener")}>Abrir no Google Maps <Icone name="arrow" /></Botao>
           </div>
-          <button type="button" onClick={() => window.open(URL_MAPAS, "_blank", "noopener")} className="relative min-h-map overflow-hidden rounded-2xl bg-brand-soft text-left focus:outline-none focus:ring-2 focus:ring-brand md:col-span-8" aria-label="Abrir localização no Google Maps">
+          <button type="button" onClick={() => window.open(URL_MAPAS, "_blank", "noopener")} className="relative min-h-map overflow-hidden rounded-2xl bg-brand-soft text-left focus:outline-none focus:ring-2 focus:ring-brand md:col-span-8" aria-label="Associação Okinawa de Santa Clara — Abrir localização no Google Maps">
             <div className="absolute inset-0 map-pattern opacity-70" />
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-brand"><span className="grid size-16 place-items-center rounded-full bg-white shadow-xl"><Icone name="location" size={30} /></span></div>
             <div className="absolute bottom-4 left-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold shadow-lg">Associação Okinawa de Santa Clara</div>
@@ -203,7 +282,7 @@ export default function SitePublico({ onLogin: aoEntrar }) {
             <h3 className="text-lg font-bold text-accent">Redes sociais</h3>
             <div className="mt-5 flex flex-col items-start gap-2">
               {[["facebook", "https://www.facebook.com/okinawasantaclara", "Okinawa Santa Clara", "Facebook"], ["instagram", "https://www.instagram.com/okinawa.santaclara/", "@okinawa.santaclara", "Instagram"]].map(([icone, enderecoHref, rotulo, rede]) => (
-                <a key={icone} href={enderecoHref} target="_blank" rel="noreferrer" aria-label={`Visitar o ${rede} da Associação Okinawa de Santa Clara`} className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-brand">
+                <a key={icone} href={enderecoHref} target="_blank" rel="noreferrer" aria-label={`${rotulo} — visitar o ${rede} da Associação Okinawa de Santa Clara`} className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-white/80 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-brand">
                   <span className="grid size-9 place-items-center rounded-full bg-white/10 text-white"><Icone name={icone} /></span>
                   <span className="text-sm font-semibold">{rotulo}</span>
                 </a>
@@ -220,9 +299,31 @@ export default function SitePublico({ onLogin: aoEntrar }) {
           <img src={departamento.image} alt="" className="aspect-video w-full rounded-xl object-cover" />
           <p className="mt-5 leading-relaxed text-muted">{departamento.description}</p>
           <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-divider pt-5 text-sm">
-            <div><dt className="text-muted">Encontros</dt><dd className="font-semibold">{departamento.day}, {departamento.time}</dd></div>
-            <div><dt className="text-muted">Responsável</dt><dd className="font-semibold">{departamento.teacher}</dd></div>
-          </dl>
+
+  <div>
+    <dt className="text-muted">Encontros</dt>
+    <dd className="font-semibold">
+      {departamento.day}, {departamento.time}
+    </dd>
+  </div>
+
+  <div>
+    <dt className="text-muted">Responsável</dt>
+    <dd className="font-semibold">
+      {departamento.teacher || "Não informado"}
+    </dd>
+  </div>
+
+  {departamento.school && (
+    <div>
+      <dt className="text-muted">Escola</dt>
+      <dd className="font-semibold">
+        {departamento.school}
+      </dd>
+    </div>
+  )}
+
+</dl>
         </Modal>
       )}
       {artigo && (

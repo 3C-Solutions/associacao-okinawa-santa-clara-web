@@ -36,19 +36,25 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
     try {
       const cabecalhos = new axios.AxiosHeaders(headers);
       if (token) cabecalhos.set("Authorization", `Bearer ${token}`);
-      if (body !== undefined) cabecalhos.set("Content-Type", "application/json");
+      if (body instanceof FormData) {
+        // O navegador define o Content-Type multipart com o boundary correto.
+        cabecalhos.delete("Content-Type");
+      } else if (body !== undefined) {
+        cabecalhos.set("Content-Type", "application/json");
+      }
       if (download) cabecalhos.set("Accept", XLSX_MIME_TYPE);
       const resposta = await cliente.request({
         ...opcoes, url: caminho, headers: cabecalhos, signal, responseType: download ? "blob" : "text",
         ...(body !== undefined ? { data: body } : {}),
       });
       if (resposta.status < 200 || resposta.status >= 300) {
-        let codigo = null;
-        try {
+        let codigo = null, mensagemApi = null;
+          try {
           const dadosErro = JSON.parse(resposta.data);
           if (typeof dadosErro?.codigo === "string") codigo = dadosErro.codigo;
+          if ([400, 409].includes(resposta.status) && typeof dadosErro?.mensagem === "string") mensagemApi = dadosErro.mensagem;
         } catch { /* Proxies podem devolver um corpo sem JSON. */ }
-        throw new ErroApi(resposta.status, mensagens[resposta.status] || "O serviço está indisponível. Tente novamente em instantes.", codigo);
+        throw new ErroApi(resposta.status, mensagemApi || mensagens[resposta.status] || "O serviço está indisponível. Tente novamente em instantes.", codigo);
       }
       if (statusEsperado !== undefined && resposta.status !== statusEsperado) {
         throw new ErroApi(502, "O serviço retornou uma resposta inesperada. Tente novamente.");
