@@ -36,7 +36,12 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
     try {
       const cabecalhos = new axios.AxiosHeaders(headers);
       if (token) cabecalhos.set("Authorization", `Bearer ${token}`);
-      if (body !== undefined) cabecalhos.set("Content-Type", "application/json");
+      if (body instanceof FormData) {
+        // O navegador define o Content-Type multipart com o boundary correto.
+        cabecalhos.delete("Content-Type");
+      } else if (body !== undefined) {
+        cabecalhos.set("Content-Type", "application/json");
+      }
       if (download) cabecalhos.set("Accept", XLSX_MIME_TYPE);
       const resposta = await cliente.request({
         ...opcoes, url: caminho, headers: cabecalhos, signal, responseType: download ? "blob" : "text",
