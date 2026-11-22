@@ -11,7 +11,7 @@ import Configuracoes from "./screens/Settings/Settings.jsx";
 export const NAVEGACAO_PAINEL = [
  { id: "home", label: "Início", icon: "home", comum: true, componente: InicioAutenticado },
  { id: "finance", label: "Financeiro", icon: "wallet", permissao: "TELA_FINANCEIRO", componente: Financas },
- { id: "agenda", label: "Agenda", icon: "calendar", permissao: "TELA_AGENDA", componente: Agenda, prototipo: true },
+ { id: "agenda", label: "Agenda", icon: "calendar", permissao: "TELA_AGENDA", componente: Agenda},
  { id: "news", label: "Notícias", icon: "news", permissao: "TELA_NOTICIAS", componente: Noticias, prototipo: true },
  {
  id: "registrations", label: "Cadastros", icon: "folder", children: [
