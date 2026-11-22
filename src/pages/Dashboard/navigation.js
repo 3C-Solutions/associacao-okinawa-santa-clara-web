@@ -6,11 +6,13 @@ import Noticias from "./screens/News/News.jsx";
 import Departamentos from "./screens/Departments/Departments.jsx";
 import Familias from "./screens/Families/Families.jsx";
 import Financas from "./screens/Finance/Finance.jsx";
+import SolicitacoesReembolso from "./screens/Finance/requests/RequesterRefunds.jsx";
 import Configuracoes from "./screens/Settings/Settings.jsx";
 
 export const NAVEGACAO_PAINEL = [
  { id: "home", label: "Início", icon: "home", comum: true, componente: InicioAutenticado },
  { id: "finance", label: "Financeiro", icon: "wallet", permissao: "TELA_FINANCEIRO", componente: Financas },
+ { id: "refund-request", label: "Solicitar reembolso", icon: "wallet", comum: true, ocultarSePermissao: "TELA_FINANCEIRO", componente: SolicitacoesReembolso },
  { id: "agenda", label: "Agenda", icon: "calendar", permissao: "TELA_AGENDA", componente: Agenda, prototipo: true },
  { id: "news", label: "Notícias", icon: "news", permissao: "TELA_NOTICIAS", componente: Noticias, prototipo: true },
  {
@@ -25,6 +27,7 @@ export const NAVEGACAO_PAINEL = [
 ];
 export function filtrarNavegacao(itens, podeAcessar) {
  return itens.flatMap((item) => {
+ if (item.ocultarSePermissao && podeAcessar(item.ocultarSePermissao)) return [];
  if (item.children) {
  const children = filtrarNavegacao(item.children, podeAcessar);
  return children.length ? [{ ...item, children }] : [];
