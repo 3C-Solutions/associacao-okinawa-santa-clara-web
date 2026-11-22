@@ -19,7 +19,7 @@ export default function SeletorImagem({ value: valor, onChange: aoAlterar, label
     const arquivo = evento.target.files?.[0];
     evento.target.value = "";
     if (!arquivo) return;
-    if (!/^image\/(png|jpe?g|webp)$/.test(arquivo.type)) { aviso("Use uma imagem PNG, JPG ou WebP.", "error"); return; }
+    if (!/^image\/(png|jpeg|webp)$/.test(arquivo.type)) { aviso("Use uma imagem PNG, JPG ou WebP.", "error"); return; }
     if (arquivo.size > 1024 * 1024) { aviso("A imagem deve ter até 1 MB.", "error"); return; }
     trocar(URL.createObjectURL(arquivo), arquivo);
   };
