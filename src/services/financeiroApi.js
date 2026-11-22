@@ -13,6 +13,7 @@ function adaptarLancamento(lancamento) {
  locked: lancamento.bloqueado,
  fkUsuario: lancamento.fkUsuario,
  fkFamilia: lancamento.fkFamilia,
+ reembolso: lancamento.reembolso,
  };
 }
 const parametrosExportacao = (dados) => {

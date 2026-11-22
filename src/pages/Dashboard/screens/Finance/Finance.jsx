@@ -162,8 +162,9 @@ export default function Financas() {
         </Cartao>
         <TabelaDados columns={colunas} rows={filtrado} empty={<EstadoVazio icon="wallet" title="Nenhum lançamento encontrado">Ajuste os filtros ou cadastre uma entrada ou despesa.</EstadoVazio>} actions={(item) => item.locked ? <span className="text-xs text-muted">Via pagamento</span> : <>
           {item.status === "Pendente" && <BotaoIcone icon="check" label={`Confirmar ${nomeLancamento(item)}`} size="sm" disabled={bloqueado} onClick={() => executar(() => item.type === "in" ? api.confirmarEntrada(Number(item.id.slice(4))) : api.confirmarDespesa(Number(item.id.slice(4))), "Lançamento confirmado")} />}
-          <BotaoIcone icon="edit" label={`Editar ${nomeLancamento(item)}`} size="sm" disabled={bloqueado} onClick={() => setFormulario(item)} />
-          <BotaoIcone icon="trash" label={`Excluir ${nomeLancamento(item)}`} size="sm" tone="danger" disabled={bloqueado} onClick={() => remover(item)} />
+          {!item.reembolso && <BotaoIcone icon="edit" label={`Editar ${nomeLancamento(item)}`} size="sm" disabled={bloqueado} onClick={() => setFormulario(item)} />}
+          {!item.reembolso && <BotaoIcone icon="trash" label={`Excluir ${nomeLancamento(item)}`} size="sm" tone="danger" disabled={bloqueado} onClick={() => remover(item)} />}
+          {item.reembolso && item.status !== "Pendente" && <span className="text-xs text-muted">Via reembolso</span>}
         </>} />
       </section>
     </>}

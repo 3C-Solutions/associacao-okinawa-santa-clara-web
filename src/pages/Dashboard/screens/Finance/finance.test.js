@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validarDespesa } from './financeValidation.js';
 import { criarServicoFinanceiro } from '../../../../services/financeiroApi.js';
-import { atualizarReembolsos, lerReembolsos, reembolsosVisiveis, usuarioEhFinanceiro } from '../../../../lib/refunds.js';
+import { criarServicoReembolsos } from '../../../../services/reembolsosApi.js';
 import { validarReembolso } from './requests/refundHelpers.js';
 
 const despesa = { descricao: 'Materiais', categoria: 'Outros', valor: '12.50', dtDepesa: '2026-11-03', status: 'Pendente', fkFamilia: '' };
@@ -36,24 +36,27 @@ test('solicitação de reembolso valida motivo, valor positivo e comprovante', (
   assert.ok(validarReembolso({ ...valida, reason: 'abc' }).erros.reason);
   assert.ok(validarReembolso({ ...valida, receipt: null }).erros.receipt);
 });
-test('reembolsos locais ficam acessíveis ao Financeiro e isolados para o solicitante', () => {
-  const itens = [{ id: 'r1', ownerId: 7 }, { id: 'r2', ownerId: 8 }];
-  assert.deepEqual(reembolsosVisiveis(itens, 7, false), [itens[0]]);
-  assert.deepEqual(reembolsosVisiveis(itens, 8, true), itens);
-  assert.equal(usuarioEhFinanceiro('Financeiro'), true);
-  assert.equal(usuarioEhFinanceiro('Diretoria'), false);
-});
-test('atualiza solicitações locais e informa dados salvos inválidos', () => {
-  const valores = new Map();
-  const storage = {
-    getItem: (chave) => valores.get(chave) ?? null,
-    setItem: (chave, valor) => valores.set(chave, valor),
-  };
-  assert.deepEqual(lerReembolsos(storage), []);
-  atualizarReembolsos((itens) => [...itens, { id: 'r1', status: 'Pendente' }], storage);
-  assert.deepEqual(lerReembolsos(storage), [{ id: 'r1', status: 'Pendente' }]);
-  valores.set('okinawa-sc-reembolsos-v1', '{');
-  assert.throws(() => lerReembolsos(storage), /dados salvos estão inválidos/);
+test('solicitante cria e consulta reembolsos pela API, e Financeiro pode aprovar ou recusar', async () => {
+  const chamadas = [];
+  const api = criarServicoReembolsos(async (path, options = {}) => {
+    chamadas.push([path, options]);
+    return [];
+  });
+  const dados = { motivo: 'Compra de material', valor: 12.5, comprovante: { nome: 'nota.pdf', tipo: 'application/pdf', dados: 'data:application/pdf;base64,JVBERiQ=' } };
+  await api.meus();
+  await api.criar(dados);
+  await api.listar();
+  await api.aprovar(7);
+  await api.recusar(8, 'Fora da política');
+  assert.deepEqual(chamadas.map(([path, options]) => [path, options.method || 'GET']), [
+    ['/reembolsos/meus', 'GET'],
+    ['/reembolsos', 'POST'],
+    ['/reembolsos', 'GET'],
+    ['/reembolsos/7/aprovar', 'PATCH'],
+    ['/reembolsos/8/recusar', 'PATCH'],
+  ]);
+  assert.equal(chamadas[1][1].body, dados);
+  assert.deepEqual(chamadas[4][1].body, { motivo: 'Fora da política' });
 });
 test('rejeita valores vazios, negativos, não finitos e casas extras', () => {
   for (const valor of ['', 'abc', 'NaN', 'Infinity', '-1', '0', '1.001', '1000000000000']) assert.ok(validarDespesa({ ...despesa, valor }).valor, valor);
@@ -89,11 +92,12 @@ test('adapta valores, status confirmado e encaminha cancelamento', async () => {
   const api = criarServicoFinanceiro(async (path, options) => {
     assert.equal(path, '/financeiro/dashboard?ano=2026&mes=11');
     assert.equal(options.signal, controller.signal);
-    return { resumo: { saldoMensal: 12.5 }, lancamentos: [{ id: 'PAG-1', data: '2026-11-03', descricao: 'Anuidade', categoria: 'Anuidades', valor: '12.50', tipo: 'ENTRADA', status: ' Confirmado ', bloqueado: true }] };
+    return { resumo: { saldoMensal: 12.5 }, lancamentos: [{ id: 'PAG-1', data: '2026-11-03', descricao: 'Anuidade', categoria: 'Anuidades', valor: '12.50', tipo: 'ENTRADA', status: ' Confirmado ', bloqueado: true, reembolso: true }] };
   });
   const resultado = await api.dashboard(2026, 11, { signal: controller.signal });
   assert.equal(resultado.transactions[0].amount, 12.5);
   assert.equal(resultado.transactions[0].status, 'Pago');
   assert.equal(resultado.transactions[0].type, 'in');
   assert.equal(resultado.transactions[0].locked, true);
+  assert.equal(resultado.transactions[0].reembolso, true);
 });
