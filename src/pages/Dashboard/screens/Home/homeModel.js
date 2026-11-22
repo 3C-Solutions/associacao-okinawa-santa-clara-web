@@ -15,7 +15,6 @@ export function criarModeloHome(dados = {}, hoje = hojeISO()) {
   const transacoes = lista(dados.transactions).filter((item) => item.scope === "assoc");
   const departamentos = lista(dados.departments);
   const eventosAgenda = lista(dados.events);
-  const noticias = lista(dados.news);
   const tarefas = [];
 
   reservas.forEach((item) => tarefas.push({
@@ -36,10 +35,6 @@ export function criarModeloHome(dados = {}, hoje = hojeISO()) {
     key: `reembolso:${item.id}`, title: `Analisar reembolso: ${item.ownerName}`,
     sub: `Exemplo financeiro · ${formatarMoeda(item.amount)}`, status: "Exemplo", tone: "info",
   }));
-  noticias.filter((item) => item.status === "Rascunho").forEach((item) => tarefas.push({
-    key: `noticia:${item.id}`, title: `Publicar: ${item.title}`,
-    sub: "Notícias · rascunho", status: "Rascunho", tone: "info", destino: "news",
-  }));
 
   return {
     saldoMensal: saldoDe(transacoes.filter((item) => chaveMes(item.date) === chaveMes(hoje))),
@@ -49,8 +44,6 @@ export function criarModeloHome(dados = {}, hoje = hojeISO()) {
     departamentosAtivos: departamentos.filter((item) => item.active).length,
     departamentosTotal: departamentos.length,
     tarefas: tarefas.slice(0, 5),
-    noticias: noticias.filter((item) => item.status === "Publicado")
-      .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 2),
     eventos: eventosAgenda.filter((item) => item.date >= hoje)
       .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 4),
     marcacoes: Object.fromEntries(eventosAgenda.map((item) => [item.date, "event"])),

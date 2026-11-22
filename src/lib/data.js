@@ -91,7 +91,6 @@ export const TIPOS_CRIAVEIS_ADMIN = TIPOS_USUARIOS.filter((tempo) => tempo.value
 export const CATEGORIAS_FINANCEIRAS = ["Mensalidades", "Anuidades", "Kifu (doações)", "Eventos", "Aluguel do salão", "Infraestrutura", "Materiais", "Reembolsos", "Outros"];
 export const CATEGORIAS_EVENTOS = ["Cultural", "Ensaio", "Comunidade", "Reunião", "Esporte", "Aula"];
 export const CATEGORIAS_NOTICIAS = ["Evento", "Departamento", "Comunicado", "Cultura"];
-export const PUBLICOS_NOTICIAS = ["Todos", "Associados", "Diretoria"];
 export const RELACOES = ["Cônjuge", "Filho(a)", "Pai", "Mãe", "Irmão(ã)", "Outro"];
 export const DIAS_SEMANA = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"];
 export const MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];

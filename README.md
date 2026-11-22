@@ -45,26 +45,23 @@ Após o login, o painel reaproveita o layout anterior com sidebar, cabeçalho e 
 mobile, utilizando nome, e-mail e função retornados por `/auth/me`. O Início está disponível
 a toda conta autenticada. O catálogo do painel libera Usuários com `TELA_USUARIOS` e
 Funções do sistema com `TELA_FUNCOES_SISTEMA`, inclusive pelos atalhos do Início.
-O menu permanece fixo no front, com as entradas adicionais abaixo. Cada entrada aparece
-somente quando `/auth/me` retorna o código correspondente na lista de permissões.
+O menu combina telas comuns com entradas liberadas conforme os códigos retornados
+por `/auth/me`.
 
 | Tela | Código | Localização |
 | --- | --- | --- |
 | Financeiro | `TELA_FINANCEIRO` | Menu principal |
 | Agenda | `TELA_AGENDA` | Menu principal |
-| Notícias | `TELA_NOTICIAS` | Menu principal |
+| Notícias | Leitura autenticada. Gestão com `GERENCIAR_NOTICIAS` | Menu principal |
 | Departamentos | `TELA_DEPARTAMENTOS` | Cadastros |
 
 As quatro entradas estão disponíveis na sidebar, na navegação mobile e nos atalhos
-do Início. Financeiro utiliza a API real; Agenda, Notícias e Departamentos abrem
-os protótipos originais na visualização administrativa de demonstração.
-Os atalhos exibem a indicação Protótipo; as telas possuem um aviso de dados de demonstração.
-As ações de criar, editar, excluir, aprovar e filtrar nesses módulos utilizam somente dados locais.
-O acesso continua sendo liberado pelas permissões reais, independentemente do nome da função.
+do Início. Financeiro, Notícias e Departamentos consultam a API. A Agenda usa dados
+de demonstração e armazena suas alterações localmente.
 Usuários continua em Cadastros e Funções do sistema
 em Administração do Sistema, com as telas já integradas.
 
-Os três protótipos compartilham um armazenamento próprio do painel, separado por usuário
+Os dados de protótipo ficam em um armazenamento próprio do painel, separado por usuário
 autenticado (`okinawa-sc-painel-prototipo:<id>`). As alterações persistem neste navegador
 ao trocar de tela, sair e entrar novamente ou recarregar a página. A troca de usuário
 reinicia o contexto em memória e carrega somente os dados locais daquela conta.
@@ -166,16 +163,12 @@ notícias à esquerda; quatro próximos eventos e calendário à direita no desk
 No celular, os blocos ficam empilhados. Os cartões Sua conta e Seus acessos ficam
 somente na home genérica das outras funções.
 
-Todo o conteúdo da Home é mockado, com um aviso discreto de demonstração.
-A função original `criarDadosIniciais()`, em `src/lib/data.js`, fornece os exemplos,
-preservando os cadastros, lançamentos, notícias, imagens e regras de datas que já
-existiam no projeto. A Home gera uma instância em memória ao abrir, mantida durante
-sua exibição, sem APIs ou dependência do armazenamento do painel.
-Todos os blocos demonstrativos aparecem mesmo sem permissões dos módulos.
-A leitura das notícias de exemplo e a navegação entre meses do calendário funcionam localmente.
+Os indicadores, as pendências e os eventos são exemplos de `criarDadosIniciais()`.
+A seção Notícias consulta as duas publicações mais recentes que a conta pode ler.
+O modal consulta o detalhe e, quando houver capa, carrega a imagem com a sessão
+autenticada.
 
-Os atalhos para outros módulos continuam exigindo a permissão real e um destino
-disponível no menu. Revogar um acesso retira o atalho, preservando os exemplos.
+Os atalhos acompanham as telas comuns e os módulos liberados para a conta.
 Financeiro e Famílias utilizam APIs reais; seus atalhos indicam **dados reais**.
 Pendências financeiras demonstrativas não abrem nem alteram registros reais.
 Alterações feitas nos demais módulos não modificam a instância de exemplos da Home.

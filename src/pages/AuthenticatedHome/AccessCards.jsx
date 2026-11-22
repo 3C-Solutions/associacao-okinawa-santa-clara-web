@@ -1,16 +1,18 @@
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { Cartao, Icone } from "@/components/ui";
+import { GERENCIAR_NOTICIAS } from "@/services/noticias.js";
 
 export default function AcessosConta({ screens: telas = [], navigate: navegar }) {
   const { permissoes, podeAcessar, atualizando } = usarAutenticacao();
-  const funcionalidades = telas.filter((item) => item.permissao && podeAcessar(item.permissao));
-  const outros = permissoes.filter((codigo) => !telas.some((item) => item.permissao === codigo)).length;
+  const funcionalidades = telas.filter((item) => item.id === "news" || (item.permissao && podeAcessar(item.permissao)));
+  const outros = permissoes.filter((codigo) => codigo !== GERENCIAR_NOTICIAS && codigo !== "TELA_NOTICIAS"
+    && !telas.some((item) => item.permissao === codigo)).length;
 
   return (
     <section aria-busy={atualizando}>
       <Cartao className="p-6">
         <h2 className="text-lg font-bold">Seus acessos</h2>
-        {permissoes.length === 0 ? <p className="mt-3 text-muted">Nenhuma tela liberada. Entre em contato com a administração para solicitar acesso.</p> : (
+        {funcionalidades.length === 0 && outros === 0 ? <p className="mt-3 text-muted">Nenhuma funcionalidade adicional disponível.</p> : (
           <>
             <p className="mt-2 text-sm text-muted">Confira as funcionalidades autorizadas para sua conta.</p>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">

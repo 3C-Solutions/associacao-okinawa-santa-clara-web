@@ -16,6 +16,7 @@ const mensagens = {
   403: "Você não tem permissão para realizar esta ação.",
   404: "O registro solicitado não foi encontrado. Atualize os dados e tente novamente.",
   409: "Os dados entram em conflito com um cadastro existente. Confira as informações e tente novamente.",
+  413: "A imagem deve ter até 1 MB.",
 };
 
 export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/api", adapter, timeoutMs = 15000 } = {}) {
@@ -31,7 +32,7 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
     ...(adapter ? { adapter } : {}),
   });
 
-  return async function requisitar(caminho, { token, body, signal, headers, statusEsperado, download = false, ...opcoes } = {}) {
+  return async function requisitar(caminho, { token, body, signal, headers, statusEsperado, download = false, respostaBlob = false, ...opcoes } = {}) {
     if (!caminho.startsWith("/") || caminho.startsWith("//")) throw new Error("Caminho de API inválido");
     try {
       const cabecalhos = new axios.AxiosHeaders(headers);
@@ -44,17 +45,18 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
       }
       if (download) cabecalhos.set("Accept", XLSX_MIME_TYPE);
       const resposta = await cliente.request({
-        ...opcoes, url: caminho, headers: cabecalhos, signal, responseType: download ? "blob" : "text",
+        ...opcoes, url: caminho, headers: cabecalhos, signal, responseType: download || respostaBlob ? "blob" : "text",
         ...(body !== undefined ? { data: body } : {}),
       });
       if (resposta.status < 200 || resposta.status >= 300) {
         let codigo = null, mensagemApi = null;
           try {
-          const dadosErro = JSON.parse(resposta.data);
-          if (typeof dadosErro?.codigo === "string") codigo = dadosErro.codigo;
-          if ([400, 409].includes(resposta.status) && typeof dadosErro?.mensagem === "string") mensagemApi = dadosErro.mensagem;
-        } catch { /* Proxies podem devolver um corpo sem JSON. */ }
-        throw new ErroApi(resposta.status, mensagemApi || mensagens[resposta.status] || "O serviço está indisponível. Tente novamente em instantes.", codigo);
+            const textoErro = resposta.data instanceof Blob ? await resposta.data.text() : resposta.data;
+            const dadosErro = JSON.parse(textoErro);
+            if (typeof dadosErro?.codigo === "string") codigo = dadosErro.codigo;
+            if ([400, 409, 413].includes(resposta.status) && typeof dadosErro?.mensagem === "string") mensagemApi = dadosErro.mensagem;
+          } catch { /* Proxies podem devolver um corpo sem JSON. */ }
+          throw new ErroApi(resposta.status, mensagemApi || mensagens[resposta.status] || "O serviço está indisponível. Tente novamente em instantes.", codigo);
       }
       if (statusEsperado !== undefined && resposta.status !== statusEsperado) {
         throw new ErroApi(502, "O serviço retornou uma resposta inesperada. Tente novamente.");
@@ -65,6 +67,7 @@ export function criarClienteApi({ baseUrl = import.meta.env?.VITE_API_URL || "/a
           contentDisposition: resposta.headers?.["content-disposition"] || "",
         };
       }
+      if (respostaBlob) return resposta.data;
       const texto = resposta.data;
       if (!texto) return null;
       try { return JSON.parse(texto); }
