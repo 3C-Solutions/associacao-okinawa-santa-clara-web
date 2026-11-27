@@ -2,12 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
 import { Botao, Campo, CampoAreaTexto, Cartao, EstadoVazio, SeloStatus, TabelaDados } from "@/components/ui";
 import { formatarData, formatarMoeda } from "@/lib/data.js";
-import CampoComprovante from "@/pages/Dashboard/components/ReceiptField.jsx";
 import { usarArmazenamento } from "@/store";
 import { criarServicoReembolsos } from "@/services/reembolsosApi.js";
 import { validarReembolso } from "./refundHelpers.js";
 
-const formularioInicial = { reason: "", amount: "", receipt: null };
+const formularioInicial = { reason: "", amount: "" };
 
 export default function SolicitacoesReembolso() {
   const { requisitar } = usarAutenticacao();
@@ -54,11 +53,6 @@ export default function SolicitacoesReembolso() {
       await api.criar({
         motivo: formulario.reason.trim(),
         valor: resultado.valor,
-        comprovante: {
-          nome: formulario.receipt.name,
-          tipo: formulario.receipt.type,
-          dados: formulario.receipt.data,
-        },
       });
       definirFormulario(formularioInicial);
       definirErros({});
@@ -85,13 +79,12 @@ export default function SolicitacoesReembolso() {
   return <section className="space-y-5" aria-label="Solicitações de reembolso">
     <div>
       <h2 className="text-lg font-bold">Solicitar reembolso</h2>
-      <p className="mt-1 text-sm text-muted">Envie a solicitação para análise do Financeiro e acompanhe o andamento aqui.</p>
+      <p className="mt-1 text-sm text-muted">Informe o motivo e o valor. A tabela lancamento atual não armazena comprovantes nem justificativas de recusa.</p>
     </div>
     <Cartao className="space-y-4 p-5">
       <form onSubmit={enviar} className="space-y-4">
-        <CampoAreaTexto label="Motivo" rows={3} value={formulario.reason} onChange={definir("reason")} error={erros.reason} placeholder="Descreva a despesa que deve ser reembolsada" required maxLength={500} />
+        <CampoAreaTexto label="Motivo" rows={3} value={formulario.reason} onChange={definir("reason")} error={erros.reason} placeholder="Descreva a despesa que deve ser reembolsada" required maxLength={200} />
         <Campo label="Valor (R$)" type="number" min="0.01" step="0.01" value={formulario.amount} onChange={definir("amount")} error={erros.amount} required />
-        <CampoComprovante value={formulario.receipt} onChange={definir("receipt")} error={erros.receipt} />
         <div className="flex justify-end"><Botao type="submit" disabled={salvando || carregando}>{salvando ? "Enviando..." : "Enviar solicitação"}</Botao></div>
       </form>
     </Cartao>
@@ -104,9 +97,7 @@ export default function SolicitacoesReembolso() {
       columns={colunas}
       rows={itens}
       empty={<EstadoVazio icon="wallet" title="Nenhuma solicitação enviada">Depois de enviar um pedido, você poderá acompanhar o status por aqui.</EstadoVazio>}
-      actions={(item) => item.status === "Recusado" && item.motivoRecusa
-        ? <span className="max-w-xs text-xs text-danger">{item.motivoRecusa}</span>
-        : <span className="text-xs text-muted">{item.status === "Pago" ? "Reembolso pago" : item.status === "Aprovado" ? "Aguardando pagamento" : "Em análise"}</span>}
+      actions={(item) => <span className="text-xs text-muted">{item.status === "Pago" ? "Reembolso pago" : item.status === "Aprovado" ? "Aguardando pagamento" : item.status === "Recusado" ? "Solicitação recusada" : "Em análise"}</span>}
     />}
   </section>;
 }
