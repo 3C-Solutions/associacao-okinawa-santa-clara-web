@@ -31,7 +31,7 @@ export default function SolicitacoesReembolso() {
     const controle = new AbortController();
     definirCarregando(true);
     carregar(controle.signal)
-      .catch((falha) => { if (!controle.signal.aborted) setErro(falha.message); })
+      .catch((falha) => { if (!controle.signal.aborted) definirErro(falha.message); })
       .finally(() => { if (!controle.signal.aborted) definirCarregando(false); });
     return () => controle.abort();
   }, [carregar]);
@@ -48,7 +48,7 @@ export default function SolicitacoesReembolso() {
     definirErros(resultado.erros);
     if (Object.keys(resultado.erros).length) return;
 
-    setSalvando(true);
+    definirSalvando(true);
     definirErro("");
     try {
       await api.criar({
@@ -71,7 +71,7 @@ export default function SolicitacoesReembolso() {
     } catch (falha) {
       definirErro(falha.message);
     } finally {
-      setSalvando(false);
+      definirSalvando(false);
     }
   };
 

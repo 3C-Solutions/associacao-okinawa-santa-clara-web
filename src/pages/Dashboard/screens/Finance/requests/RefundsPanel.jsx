@@ -76,7 +76,7 @@ export default function PainelReembolsos() {
   }, [carregar]);
 
   const revisar = async (item, status, motivo) => {
-    setSalvando(true);
+    definirSalvando(true);
     definirErro("");
     try {
       if (status === "Aprovado") await api.aprovar(item.id);
@@ -88,7 +88,7 @@ export default function PainelReembolsos() {
         definirErro(`Solicitação atualizada, mas a lista não pôde ser atualizada: ${falha.message}`);
       }
     } finally {
-      setSalvando(false);
+      definirSalvando(false);
     }
   };
 
