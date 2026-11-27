@@ -6,6 +6,9 @@
   "scripts": {
     "test:finance": "node --test src/pages/Dashboard/screens/Finance/finance.test.js",
     "test:usuarios": "node --test src/services/usuarios.test.js",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report QA/playwright-report",
+    "test:all": "npm run test:e2e && npm run test:finance && npm run test:usuarios && npm run build && npm run test:e2e:report",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -22,6 +25,7 @@
     }
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/vite": "^4.0.0",
     "@vitejs/plugin-react": "^6.0.0",
     "tailwindcss": "^4.0.0",
