@@ -27,14 +27,14 @@ test('aceita centavos e família opcional', () => {
   assert.deepEqual(validarDespesa(despesa), {});
   assert.deepEqual(validarDespesa({ ...despesa, valor: '0,01', fkFamilia: '5' }), {});
 });
-test('solicitação de reembolso valida motivo, valor positivo e comprovante', () => {
-  const valida = { reason: 'Compra de materiais', amount: '12,50', receipt: { name: 'nota.pdf' } };
+test('solicitação de reembolso valida motivo e valor compatíveis com lancamento', () => {
+  const valida = { reason: 'Compra de materiais', amount: '12,50' };
   assert.deepEqual(validarReembolso(valida), { erros: {}, valor: 12.5 });
   assert.ok(validarReembolso({ ...valida, amount: '0' }).erros.amount);
   assert.ok(validarReembolso({ ...valida, amount: 'invalido' }).erros.amount);
   assert.ok(validarReembolso({ ...valida, amount: '12.501' }).erros.amount);
   assert.ok(validarReembolso({ ...valida, reason: 'abc' }).erros.reason);
-  assert.ok(validarReembolso({ ...valida, receipt: null }).erros.receipt);
+  assert.ok(validarReembolso({ ...valida, reason: 'x'.repeat(201) }).erros.reason);
 });
 test('solicitante cria e consulta reembolsos pela API, e Financeiro pode aprovar ou recusar', async () => {
   const chamadas = [];
@@ -42,12 +42,12 @@ test('solicitante cria e consulta reembolsos pela API, e Financeiro pode aprovar
     chamadas.push([path, options]);
     return [];
   });
-  const dados = { motivo: 'Compra de material', valor: 12.5, comprovante: { nome: 'nota.pdf', tipo: 'application/pdf', dados: 'data:application/pdf;base64,JVBERiQ=' } };
+  const dados = { motivo: 'Compra de material', valor: 12.5 };
   await api.meus();
   await api.criar(dados);
   await api.listar();
   await api.aprovar(7);
-  await api.recusar(8, 'Fora da política');
+  await api.recusar(8);
   assert.deepEqual(chamadas.map(([path, options]) => [path, options.method || 'GET']), [
     ['/reembolsos/meus', 'GET'],
     ['/reembolsos', 'POST'],
@@ -56,7 +56,8 @@ test('solicitante cria e consulta reembolsos pela API, e Financeiro pode aprovar
     ['/reembolsos/8/recusar', 'PATCH'],
   ]);
   assert.equal(chamadas[1][1].body, dados);
-  assert.deepEqual(chamadas[4][1].body, { motivo: 'Fora da política' });
+  assert.equal(chamadas[4][1].method, 'PATCH');
+  assert.equal(chamadas[4][1].body, undefined);
 });
 test('rejeita valores vazios, negativos, não finitos e casas extras', () => {
   for (const valor of ['', 'abc', 'NaN', 'Infinity', '-1', '0', '1.001', '1000000000000']) assert.ok(validarDespesa({ ...despesa, valor }).valor, valor);

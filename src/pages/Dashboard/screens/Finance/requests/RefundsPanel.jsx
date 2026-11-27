@@ -1,24 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usarAutenticacao } from "@/auth/AuthProvider.jsx";
-import { Botao, CampoAreaTexto, EstadoVazio, Modal, SeloStatus, TabelaDados } from "@/components/ui";
+import { Botao, EstadoVazio, Modal, SeloStatus, TabelaDados } from "@/components/ui";
 import { formatarData, formatarMoeda } from "@/lib/data.js";
 import { usarArmazenamento } from "@/store";
-import VisualizacaoComprovante from "@/pages/Dashboard/components/ReceiptView.jsx";
 import { criarServicoReembolsos } from "@/services/reembolsosApi.js";
 
 function ModalAnalise({ item, aoFechar, aoRevisar, ocupado }) {
   const [recusando, definirRecusando] = useState(false);
-  const [motivo, definirMotivo] = useState("");
   const [erro, definirErro] = useState("");
 
   const revisar = async (status) => {
-    if (status === "Recusado" && motivo.trim().length < 3) {
-      definirErro("Informe o motivo da recusa.");
-      return;
-    }
     definirErro("");
     try {
-      await aoRevisar(item, status, motivo.trim());
+      await aoRevisar(item, status);
       aoFechar();
     } catch (falha) {
       definirErro(falha.message);
@@ -40,11 +34,8 @@ function ModalAnalise({ item, aoFechar, aoRevisar, ocupado }) {
       <div><dt className="text-muted">Valor</dt><dd className="font-semibold">{formatarMoeda(item.valor)}</dd></div>
       <div className="sm:col-span-2"><dt className="text-muted">Motivo</dt><dd className="font-semibold">{item.motivo}</dd></div>
     </dl>
-    {item.motivoRecusa && <p className="mt-4 rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger"><strong>Motivo da recusa:</strong> {item.motivoRecusa}</p>}
-    <h3 className="mb-2 mt-6 font-bold">Comprovante</h3>
-    <VisualizacaoComprovante receipt={{ name: item.comprovante.nome, type: item.comprovante.tipo, data: item.comprovante.dados }} />
-    {recusando && <div className="mt-5"><CampoAreaTexto label="Motivo da recusa" rows={3} value={motivo} onChange={(valor) => { definirMotivo(valor); definirErro(""); }} error={erro} required maxLength={500} /></div>}
-    {erro && !recusando && <p role="alert" className="mt-4 text-sm text-danger">{erro}</p>}
+    {recusando && <p className="mt-5 rounded-lg bg-canvas p-3 text-sm text-muted">A tabela lancamento não armazena o motivo da recusa.</p>}
+    {erro && <p role="alert" className="mt-4 text-sm text-danger">{erro}</p>}
   </Modal>;
 }
 
@@ -75,12 +66,12 @@ export default function PainelReembolsos() {
     return () => controle.abort();
   }, [carregar]);
 
-  const revisar = async (item, status, motivo) => {
-    setSalvando(true);
+  const revisar = async (item, status) => {
+    definirSalvando(true);
     definirErro("");
     try {
       if (status === "Aprovado") await api.aprovar(item.id);
-      else await api.recusar(item.id, motivo);
+      else await api.recusar(item.id);
       aviso(status === "Aprovado" ? "Reembolso aprovado; despesa pendente criada" : "Solicitação recusada");
       try {
         await carregar();
@@ -88,7 +79,7 @@ export default function PainelReembolsos() {
         definirErro(`Solicitação atualizada, mas a lista não pôde ser atualizada: ${falha.message}`);
       }
     } finally {
-      setSalvando(false);
+      definirSalvando(false);
     }
   };
 
